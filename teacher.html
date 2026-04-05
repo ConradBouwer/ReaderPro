@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <style>
+        :root { 
+            --primary: #004a99;
+            --dark: #001a3d;
+            --sidebar-w: 240px;
+            --bg: #f1f5f9;
+            --accent: #10b981;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --info: #3b82f6;
+        }
+        
+        * { -webkit-app-region: no-drag !important; }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0; background: var(--bg);
+            display: flex; height: 100vh; overflow: hidden;
+            pointer-events: auto;
+        }
+
+        button, input, select, textarea, .nav-item, .no-print, .btn {
+            -webkit-app-region: no-drag !important;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            position: relative;
+            z-index: 9999;
+        }
+
+        .sidebar { 
+            width: var(--sidebar-w);
+            background: var(--dark); color: white;
+            display: flex; flex-direction: column; padding: 20px 0;
+            z-index: 10000; flex-shrink: 0;
+        }
+
+        .sidebar-header { 
+            padding: 0 20px 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #sidebar-logo-img {
+            max-width: 80%;
+            max-height: 60px;
+            margin-bottom: 12px;
+            object-fit: contain;
+        }
+
+        .nav-item { padding: 12px 25px; transition: 0.2s; display: flex; align-items: center; gap: 10px; color: #94a3b8; cursor: pointer; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: var(--primary); color: white; font-weight: bold; }
+
+        .main { flex: 1; display: flex; flex-direction: column; overflow-y: auto; position: relative; z-index: 10; }
+        
+        .top-bar { 
+            background: white; padding: 15px 30px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky;
+            top:0; z-index: 1001; -webkit-app-region: drag !important;
+        }
+
+        .top-bar h2, .top-bar div { -webkit-app-region: no-drag !important; }
+
+        .content { padding: 20px; width: 100%; box-sizing: border-box; }
+
+        .card { 
+            background: white; border-radius: 12px; padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px;
+            position: relative; z-index: 10;
+        }
+
+        .card-title { font-size: 18px; font-weight: bold; color: var(--dark); margin-bottom: 15px; }
+        
+        .tab-nav { display: flex; gap: 20px; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 5px; cursor: pointer; color: #64748b; font-weight: bold; border-bottom: 3px solid transparent; transition: 0.2s; }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; transition: 0.2s; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-danger { background: var(--danger-bg); color: var(--danger); }
+        .btn-small { padding: 5px 10px; font-size: 12px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 12px; color: #64748b; padding: 12px; border-bottom: 2px solid #f1f5f9; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; color: #334155; }
+        
+        .hidden { display: none !important; }
+
+        input, select, textarea { 
+            padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;
+            margin-bottom: 8px; width: 100%; box-sizing: border-box;
+            background: white; position: relative; z-index: 10001;
+            pointer-events: auto !important;
+        }
+
+        .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .dot-green { background-color: #22c55e; }
+        .dot-orange { background-color: #f59e0b; }
+        .dot-red { background-color: #ef4444; }
+        .dot-grey { background-color: #94a3b8; }
+
+        .stats-badge { background: #e2e8f0; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; color: #475569; margin-right: 5px; }
+
+@media print {
+    .sidebar, .top-bar, .nav-item, .btn, .no-print, #rep-filter-grade, #rep-filter-class, #rep-filter-student {
+        display: none !important;
+    }
+
+    .sidebar-layout, .main {
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: none !important;
+        width: 100% !important;
+    }
+
+    #report-preview-container {
+        display: block !important;
+        padding: 0 !important;
+    }
+}
+
+        .q-block { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        .opt-container { margin-left: 20px; margin-top: 10px; border-left: 3px solid var(--primary); padding-left: 15px; }
+        .opt-row { display: flex; gap: 5px; align-items: center; margin-bottom: 5px; }
+        .correct-tag { font-size: 10px; color: var(--accent); font-weight: bold; text-transform: uppercase; margin-bottom: 2px; display: block; }
+
+        /* Branding Color Inputs */
+        .color-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
+        .color-item { display: flex; flex-direction: column; gap: 5px; }
+        .color-item label { font-size: 11px; font-weight: bold; color: #64748b; }
+        .color-item input[type="color"] { height: 40px; padding: 2px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img id="sidebar-logo-img" src="" style="display: none;">
+            <div id="display-school-name" style="font-weight: bold; font-size: 18px; text-transform: uppercase;">NAMIES HIGH</div>
+            <div style="font-size: 11px; opacity: 0.6;">Admin Portal</div>
+        </div>
+        <div class="nav-item active" id="btn-roster" onclick="showSection('roster')">👥 Student Roster</div>
+        <div class="nav-item" id="btn-library" onclick="showSection('library')">📚 Manage Stories</div>
+        <div class="nav-item" id="btn-stories" onclick="showSection('stories')">📝 Story Editor</div>
+        <div class="nav-item" id="btn-reports" onclick="showSection('reports')">📊 Progress Reports</div>
+        <div class="nav-item" id="btn-settings" onclick="showSection('settings')">⚙️ School Settings</div>
+        
+        <div style="margin-top: auto; padding: 20px;">
+            <button class="btn" style="width: 100%; background: #fee2e2; color: #dc2626;" onclick="window.api.switchPage('index.html')">Logout</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="top-bar">
+            <h2 id="section-title">Student Roster</h2>
+            <div id="current-date" style="font-size: 13px; color: #64748b;"></div>
+        </div>
+
+        <div class="content">
+            <!-- ROSTER SECTION -->
+            <div id="sec-roster">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div class="card-title" id="roster-form-title" style="margin-bottom:0;">Add New Student</div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-accent btn-small" onclick="exportRoster()">📥 Export CSV</button>
+                            <input type="file" id="csv-import" accept=".csv" style="display:none" onchange="importRoster(this)">
+                            <button class="btn btn-primary btn-small" onclick="document.getElementById('csv-import').click()">📤 Import CSV</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                        <input id="sn" placeholder="Full Name" style="flex: 2;">
+                        <input id="se" placeholder="Email Address" style="flex: 2;">
+                        <input id="sg" placeholder="Grade" style="flex: 0.8;">
+                        <input id="sc" placeholder="Class" style="flex: 0.8;">
+                        <select id="sl" style="flex: 1.2;">
+                            <option value="English">English</option>
+                            <option value="Afrikaans">Afrikaans</option>
+                        </select>
+                        <button id="roster-btn" class="btn btn-primary" onclick="addS()">Add Student</button>
+                        <button id="cancel-edit" class="btn btn-danger hidden" onclick="cancelEdit()">Cancel</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Grade</th>
+                                <th>Class</th>
+                                <th>Language</th>
+                                <th class="no-print">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rt"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- LIBRARY SECTION -->
+            <div id="sec-library" class="hidden">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div class="card-title" style="margin-bottom:0;">Story Library</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 12px; font-weight: bold; color: #64748b;">View Language:</span>
+                            <select id="lib-filter" style="width: 160px; margin-bottom: 0;" onchange="loadLibrary()">
+                                <option value="All">Show All</option>
+                                <option value="English">English Only</option>
+                                <option value="Afrikaans">Afrikaans Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>Title</th><th>Language</th><th>Words</th><th>Status</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="library-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- STORIES SECTION -->
+            <div id="sec-stories" class="hidden">
+                <div style="display: flex; gap: 20px; height: 75vh;">
+                    <div class="card" style="flex: 1.2; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="card-title">1. Story Content</div>
+                            <div style="display: flex; align-items: center; gap: 5px;">
+                                <span id="ocr-count" class="stats-badge hidden">Words: 0</span>
+                                <input type="file" id="pdf-input" accept="application/pdf" style="display:none" onchange="handlePdfScan(this)">
+                                <button class="btn btn-accent btn-small" onclick="document.getElementById('pdf-input').click()">📁 Import PDF</button>
+                            </div>
+                        </div>
+                        <textarea id="scon" style="flex:1; margin-top:10px;" placeholder="Paste story text here..." oninput="updateStats()"></textarea>
+                    </div>
+
+                    <div class="card" style="flex: 1.5; overflow-y: auto;">
+                        <div class="card-title">2. Details & Quiz</div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 2px; display: block;">Manual Language Assignment</label>
+                        <select id="slang">
+                            <option value="English">English</option>
+                            <option value="Afrikaans">Afrikaans</option>
+                        </select>
+                        <input id="sid" placeholder="Unique Story ID (e.g., S01)">
+                        <input id="st" placeholder="Story Title">
+                        <div id="q-container"></div>
+                        <button class="btn btn-small" style="width:100%; margin: 10px 0; background: #e2e8f0; color: #475569;" onclick="addQ()">+ Add Question</button>
+                        <button class="btn btn-primary" style="width:100%; margin-top: 10px;" onclick="saveFullStory()">Save Story to Library</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REPORTS SECTION - With Grade/Class/Student 3-Tier Filter -->
+            <div id="sec-reports" class="hidden">
+                <!-- Report Generator Card -->
+                <div class="card no-print" style="max-width: 700px; margin: 0 auto 30px auto;">
+                    <div class="card-title" style="color: var(--primary); margin-bottom: 25px; font-size: 20px;">Report Generator</div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <!-- Grade Dropdown -->
+                        <select id="rep-filter-grade" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;" onchange="onGradeChange()">
+                            <option value="">-- Select Grade --</option>
+                        </select>
+                        
+                        <!-- Class Dropdown (Initially Disabled) -->
+                        <select id="rep-filter-class" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: #f8fafc;" disabled onchange="onClassChange()">
+                            <option value="">-- Select Class --</option>
+                        </select>
+                        
+                        <!-- Student Dropdown (Initially Disabled) -->
+                        <select id="rep-filter-student" style="width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: #f8fafc;" disabled>
+                            <option value="">-- Select Student --</option>
+                        </select>
+                        
+                        <!-- Preview Report Button -->
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 14px;" onclick="previewReport()">
+                            Preview Report
+                        </button>
+                        
+                        <!-- Print Buttons Row -->
+                        <div style="display: flex; gap: 10px; margin-top: 5px;">
+                            <button class="btn" style="flex: 1; background: white; color: var(--primary); border: 2px solid var(--primary);" onclick="printClassReport()">
+                                Print Class
+                            </button>
+                            <button class="btn" style="flex: 1; background: white; color: var(--primary); border: 2px solid var(--primary);" onclick="printAllReports()">
+                                Print All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Preview Area (Hidden until Preview clicked) -->
+                <div id="report-preview-container" style="display: none; max-width: 900px; margin: 0 auto;">
+                    <div class="card" style="padding: 0; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+                        
+                        <!-- Report Header with Logo -->
+                        <div style="background: linear-gradient(135deg, var(--dark) 0%, var(--primary) 100%); color: white; padding: 40px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 20px;">
+                                <img id="report-logo" src="" style="display: none; height: 60px; width: auto; background: white; padding: 5px; border-radius: 8px;">
+                                <div>
+                                    <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">PROGRESS REPORT</h1>
+                                    <p id="report-school-name" style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Literacy Portal</p>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <p id="report-date" style="margin: 0; font-size: 13px; opacity: 0.8;">Issued: 4/3/2026</p>
+                            </div>
+                        </div>
+
+                        <!-- Student Info -->
+                        <div style="padding: 30px 40px; border-bottom: 3px solid var(--primary);">
+                            <h2 id="report-student-name" style="margin: 0; color: var(--dark); font-size: 24px;">Student Name</h2>
+                            <p style="margin: 8px 0 0 0; color: #64748b; font-size: 14px;">
+                                Grade: <span id="report-grade" style="color: var(--primary); font-weight: 600;">--</span> | 
+                                Class: <span id="report-class" style="color: var(--primary); font-weight: 600;">--</span> | 
+                                Email: <span id="report-email" style="color: var(--primary); font-weight: 600;">--</span>
+                            </p>
+                        </div>
+
+                        <!-- Stats Cards -->
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 30px 40px; background: #f8fafc;">
+                            <div style="background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-top: 4px solid var(--primary);">
+                                <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px;">Reading Level</div>
+                                <div id="stat-level" style="font-size: 18px; font-weight: 800; color: var(--dark);">Above Grade 8+</div>
+                            </div>
+                            <div style="background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-top: 4px solid var(--accent);">
+                                <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px;">Baseline WPM</div>
+                                <div id="stat-baseline" style="font-size: 20px; font-weight: 800; color: var(--dark);">--</div>
+                            </div>
+                            <div style="background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-top: 4px solid #f59e0b;">
+                                <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px;">Avg. Speed</div>
+                                <div id="stat-avg-speed" style="font-size: 20px; font-weight: 800; color: var(--dark);">-- WPM</div>
+                            </div>
+                            <div style="background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-top: 4px solid #8b5cf6;">
+                                <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px;">Avg. Accuracy</div>
+                                <div id="stat-avg-acc" style="font-size: 20px; font-weight: 800; color: var(--dark);">--%</div>
+                            </div>
+                        </div>
+
+                        <!-- Assessment History -->
+                        <div style="padding: 30px 40px;">
+                            <h3 style="margin: 0 0 20px 0; color: var(--dark); font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">
+                                Recent Assessment History (Latest 5)
+                            </h3>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f1f5f9;">
+                                        <th style="padding: 12px 15px; text-align: left; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Date</th>
+                                        <th style="padding: 12px 15px; text-align: left; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Story Title</th>
+                                        <th style="padding: 12px 15px; text-align: left; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Reading Speed</th>
+                                        <th style="padding: 12px 15px; text-align: left; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Accuracy</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-history-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Signatures -->
+                        <div style="display: flex; justify-content: space-between; padding: 40px; gap: 60px; border-top: 1px solid #e2e8f0; margin-top: 20px;">
+                            <div style="flex: 1; text-align: center;">
+                                <div style="border-top: 1px solid #94a3b8; padding-top: 10px; margin-top: 60px;">
+                                    <p style="margin: 0; color: #64748b; font-size: 12px; font-weight: 600;">Teacher Signature</p>
+                                </div>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <div style="border-top: 1px solid #94a3b8; padding-top: 10px; margin-top: 60px;">
+                                    <p style="margin: 0; color: #64748b; font-size: 12px; font-weight: 600;">Principal Signature</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Confirm & Print Button -->
+                        <div style="background: #334155; padding: 20px; text-align: center;" class="no-print">
+                            <button class="btn btn-accent" style="background: var(--accent); color: white; border: none; padding: 12px 40px; font-weight: 700;" onclick="window.print()">
+                                Confirm & Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS SECTION -->
+            <div id="sec-settings" class="hidden">
+                <div class="card">
+                    <div class="tab-nav">
+                        <div class="tab-btn active" id="tab-brand-link" onclick="switchTab('branding')">School Branding</div>
+                        <div class="tab-btn" id="tab-user-link" onclick="switchTab('users')">User Management</div>
+                    </div>
+
+                    <div id="sub-branding">
+                        <div class="card-title">School Personalization</div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">School Name</label>
+                                    <input id="set-school-name" placeholder="Enter School Name">
+                                </div>
+                                <div>
+                                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">School Logo</label>
+                                    <input type="file" id="set-school-logo" accept="image/*" onchange="handleLogoUpload(this)">
+                                    <p style="font-size: 10px; color: #64748b; margin-top: -5px;">Uploading a logo will automatically update the colors.</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="font-weight: bold; display: block; margin-bottom: 10px;">Theme Colors (Manual Overrides)</label>
+                                <div class="color-grid">
+                                    <div class="color-item">
+                                        <label>Primary Color</label>
+                                        <input type="color" id="set-color-primary">
+                                    </div>
+                                    <div class="color-item">
+                                        <label>Dark Color</label>
+                                        <input type="color" id="set-color-dark">
+                                    </div>
+                                    <div class="color-item">
+                                        <label>Accent Color</label>
+                                        <input type="color" id="set-color-accent">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <button class="btn btn-primary" onclick="saveSettings()">Save & Apply Changes</button>
+                                <button class="btn btn-danger" style="background: transparent;" onclick="resetTheme()">Reset to Defaults</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="sub-users" class="hidden">
+                        <div class="card-title">Manage Teachers & Staff</div>
+						<div style="display: flex; gap: 10px; margin-bottom: 15px;">
+							<button class="btn btn-accent btn-small" onclick="exportTeachers()">📥 Export CSV</button>
+							<input type="file" id="teacher-csv-import" accept=".csv" style="display:none" onchange="importTeachers(this)">
+							<button class="btn btn-primary btn-small" onclick="document.getElementById('teacher-csv-import').click()">📤 Import CSV</button>
+						</div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <input id="tn" placeholder="Teacher Full Name" style="flex:1;">
+                            <input id="te" placeholder="Email Address" style="flex:1;">
+                            <input id="tp" type="password" placeholder="Password" style="flex:1;">
+                            <button class="btn btn-primary" onclick="addTeacher()">Add Teacher</button>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr><th>Full Name</th><th>Email</th><th>Role</th><th>Action</th></tr>
+                            </thead>
+                            <tbody id="teacher-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GLOBAL DATA ---
+		let allStudents = []; // This stores the list of students globally
+		let allTeachers = [];
+		let allStories = [];
+
+		let currentLogoBase64 = ""; // Add this at the top of your script
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString();
+        let currentEditEmail = null;
+        let questionData = [];
+
+        // --- BRANDING LOGIC START ---
+
+        function handleLogoUpload(input) {
+		const file = input.files[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+		reader.onload = function(e) {
+        // 1. Capture the image data into our global variable
+        currentLogoBase64 = e.target.result;
+        
+        // 2. Show it in the sidebar immediately so you can see it
+        const logoImg = document.getElementById('sidebar-logo-img');
+        if (logoImg) {
+            logoImg.src = currentLogoBase64;
+            logoImg.style.display = 'block';
+        }
+        
+        // 3. Process image to suggest colors based on the logo
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            
+            // Sample colors from the image
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let r=0, g=0, b=0;
+            const step = 400; // Sample every 400th pixel
+            for(let i=0; i<data.length; i+=step) {
+                r += data[i]; g += data[i+1]; b += data[i+2];
+            }
+            const count = data.length / step;
+            const avgR = Math.floor(r/count);
+            const avgG = Math.floor(g/count);
+            const avgB = Math.floor(b/count);
+            
+            const hex = "#" + ((1 << 24) + (avgR << 16) + (avgG << 8) + avgB).toString(16).slice(1);
+            
+            // Update the color picker inputs automatically
+            document.getElementById('set-color-primary').value = hex;
+            document.getElementById('set-color-dark').value = adjustColor(hex, -40);
+            document.getElementById('set-color-accent').value = adjustColor(hex, 40);
+        };
+        img.src = currentLogoBase64;
+    };
+    reader.readAsDataURL(file);
+}
+
+        function adjustColor(hex, amt) {
+            let usePound = false;
+            if (hex[0] == "#") { hex = hex.slice(1); usePound = true; }
+            let num = parseInt(hex, 16);
+            let r = (num >> 16) + amt;
+            if (r > 255) r = 255; else if (r < 0) r = 0;
+            let b = ((num >> 8) & 0x00FF) + amt;
+            if (b > 255) b = 255; else if (b < 0) b = 0;
+            let g = (num & 0x0000FF) + amt;
+            if (g > 255) g = 255; else if (g < 0) g = 0;
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16);
+        }
+
+ async function applyBranding() {
+    try {
+        // 1. Get settings from Database
+        const settings = await window.api.getSettings();
+        
+        if (settings) {
+            // 2. Map database keys to variables
+            const name = settings.schoolName || "NAMIES HIGH";
+            const primary = settings.primary || '#004a99';
+            const dark = settings.dark || '#001a3d';
+            const accent = settings.accent || '#10b981';
+            const logo = settings.logo;
+
+            // 3. Update the visible text and the input boxes
+            document.getElementById('display-school-name').innerText = name;
+            document.getElementById('set-school-name').value = name;
+            document.getElementById('set-color-primary').value = primary;
+            document.getElementById('set-color-dark').value = dark;
+            document.getElementById('set-color-accent').value = accent;
+
+            // 4. Apply colors to the CSS theme
+            const root = document.documentElement;
+            root.style.setProperty('--primary', primary);
+            root.style.setProperty('--dark', dark);
+            root.style.setProperty('--accent', accent);
+
+            // 5. Show the logo if it exists
+            const logoImg = document.getElementById('sidebar-logo-img');
+            if (logo && logo.length > 10) {
+                logoImg.src = logo;
+                logoImg.style.display = 'block';
+            }
+        }
+    } catch (err) {
+        console.error("Branding load failed:", err);
+    }
+}
+
+       async function saveSettings() {
+    // 1. Get the values from the screen
+    const sName = document.getElementById('set-school-name').value;
+    const sLogo = document.getElementById('sidebar-logo-img').src; // Pulls the logo path
+    const pColor = document.getElementById('set-color-primary').value;
+    const dColor = document.getElementById('set-color-dark').value;
+    const aColor = document.getElementById('set-color-accent').value;
+
+    try {
+        // 2. Save each one to the Database (NOT localStorage)
+        await window.api.saveSetting({ key: 'schoolName', value: sName });
+        await window.api.saveSetting({ key: 'logo', value: sLogo });
+        await window.api.saveSetting({ key: 'primary', value: pColor });
+        await window.api.saveSetting({ key: 'dark', value: dColor });
+        await window.api.saveSetting({ key: 'accent', value: aColor });
+
+        alert("Settings Saved to Database!");
+        location.reload(); // Refresh to show changes
+    } catch (err) {
+        console.error(err);
+        alert("Failed to save to database. Check main.js");
+    }
+}
+
+        function resetTheme() {
+            if(confirm("Reset all branding to default?")) {
+                localStorage.removeItem('schoolName');
+                localStorage.removeItem('schoolLogo');
+                localStorage.removeItem('themePrimary');
+                localStorage.removeItem('themeDark');
+                localStorage.removeItem('themeAccent');
+                location.reload();
+            }
+        }
+        
+        // --- BRANDING LOGIC END ---
+
+        function showSection(id) {
+            ['roster', 'library', 'stories', 'reports', 'settings'].forEach(s => {
+                const section = document.getElementById(`sec-${s}`);
+                const button = document.getElementById(`btn-${s}`);
+                if (section) section.classList.add('hidden');
+                if (button) button.classList.remove('active');
+            });
+            const targetSec = document.getElementById(`sec-${id}`);
+            const targetBtn = document.getElementById(`btn-${id}`);
+            if (targetSec) targetSec.classList.remove('hidden');
+            if (targetBtn) targetBtn.classList.add('active');
+            const titles = { roster: 'Student Roster', library: 'Story Library', stories: 'Story Editor', reports: 'Progress Reports', settings: 'School Settings' };
+            document.getElementById('section-title').innerText = titles[id] || 'Dashboard';
+            
+            if (id === 'library') loadLibrary();
+            if (id === 'roster') loadRoster();
+            if (id === 'reports') initReportsTab();
+        }
+
+        async function handlePdfScan(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const textArea = document.getElementById('scon');
+            textArea.value = "⚡ Scanning PDF... Please wait.";
+            textArea.readOnly = true;
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let fullText = "";
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    const { data: { text } } = await Tesseract.recognize(canvas, 'eng+afr');
+                    fullText += text + "\n";
+                }
+                textArea.value = fullText.trim();
+            } catch (err) {
+                console.error(err);
+                alert("Error scanning PDF.");
+                textArea.value = "";
+            } finally {
+                textArea.readOnly = false;
+                input.value = "";
+                updateStats();
+                setTimeout(() => {
+                    textArea.focus();
+                    if(window.api && window.api.send) window.api.send('request-focus');
+                }, 100);
+            }
+        }
+
+        function updateStats() {
+            const text = document.getElementById('scon').value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            const badge = document.getElementById('ocr-count');
+            badge.innerText = `Words: ${words}`;
+            badge.classList.toggle('hidden', words === 0);
+        }
+
+        async function loadRoster() {
+            const students = await window.api.getAllStudents();
+            const results = await window.api.getAllResults();
+            const tbody = document.getElementById('rt');
+            tbody.innerHTML = '';
+            students.forEach(s => {
+                const hasTested = results.some(r => r.email === s.email);
+                const statusDot = hasTested ? '<span class="dot dot-green"></span>' : '<span class="dot dot-grey"></span>';
+                
+                const row = `<tr>
+                    <td>${statusDot}</td>
+                    <td>${s.name}</td>
+                    <td>${s.email}</td>
+                    <td>${s.grade}</td>
+                    <td>${s.class_id}</td>
+                    <td>${s.language}</td>
+                    <td class="no-print">
+                        <button class="btn btn-accent btn-small" onclick="editS('${s.email}')">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="delS('${s.email}')">Delete</button>
+                    </td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        async function addS() {
+            const s = {
+                name: document.getElementById('sn').value.trim(),
+                email: document.getElementById('se').value.trim().toLowerCase(),
+                grade: document.getElementById('sg').value.trim(),
+                class_id: document.getElementById('sc').value.trim(),
+                language: document.getElementById('sl').value
+            };
+            if (!s.name || !s.email) return alert("Fill Name and Email.");
+            await window.api.saveStudent(s);
+            cancelEdit();
+            loadRoster();
+            window.api.send('request-focus');
+        }
+
+        async function delS(email) {
+            if (confirm("Delete this student and their records?")) {
+                await window.api.deleteStudent(email);
+                loadRoster();
+                window.api.send('request-focus');
+            }
+        }
+
+        async function editS(email) {
+            const students = await window.api.getAllStudents();
+            const s = students.find(x => x.email === email);
+            if (!s) return;
+            document.getElementById('sn').value = s.name;
+            document.getElementById('se').value = s.email;
+            document.getElementById('sg').value = s.grade;
+            document.getElementById('sc').value = s.class_id;
+            document.getElementById('sl').value = s.language;
+            document.getElementById('roster-btn').innerText = "Update Student";
+            document.getElementById('roster-form-title').innerText = "Edit Student";
+            document.getElementById('cancel-edit').classList.remove('hidden');
+            currentEditEmail = email;
+        }
+
+        function cancelEdit() {
+            document.getElementById('sn').value = '';
+            document.getElementById('se').value = '';
+            document.getElementById('sg').value = '';
+            document.getElementById('sc').value = '';
+            document.getElementById('roster-btn').innerText = "Add Student";
+            document.getElementById('roster-form-title').innerText = "Add New Student";
+            document.getElementById('cancel-edit').classList.add('hidden');
+            currentEditEmail = null;
+        }
+
+        async function exportRoster() {
+            const students = await window.api.getAllStudents();
+            await window.api.exportToCSV({ type: 'Roster', data: students });
+        }
+
+        async function importRoster(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const rows = e.target.result.split('\n').slice(1);
+                for (let row of rows) {
+                    const cols = row.split(',').map(s => s.trim().replace(/"/g, ''));
+                    if (cols[0] && cols[1]) {
+                        await window.api.saveStudent({ name: cols[0], email: cols[1], grade: cols[2], class_id: cols[3], language: cols[4] });
+                    }
+                }
+                loadRoster();
+                alert("Import Complete");
+            };
+            reader.readAsText(file);
+        }
+
+        async function loadLibrary() {
+            const stories = await window.api.getStories();
+            const filter = document.getElementById('lib-filter').value;
+            const tbody = document.getElementById('library-body');
+            tbody.innerHTML = '';
+            stories.forEach(s => {
+                if (filter !== 'All' && s.language !== filter) return;
+                const activeLabel = s.is_active ? '✅ Active' : '⚪ Inactive';
+                const row = `<tr>
+                    <td>${s.id_string}</td>
+                    <td>${s.title}</td>
+                    <td>${s.language}</td>
+                    <td>${s.words}</td>
+                    <td>${activeLabel}</td>
+                    <td>
+                        <button class="btn btn-primary btn-small" onclick="setActive('${s.id_string}')">Set Active</button>
+                        <button class="btn btn-danger btn-small" onclick="delStory('${s.id_string}')">Delete</button>
+                    </td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        async function setActive(id) {
+            await window.api.setActiveStory(id);
+            loadLibrary();
+        }
+
+        async function delStory(id) {
+            if (confirm("Delete this story?")) {
+                await window.api.deleteStory(id);
+                loadLibrary();
+            }
+        }
+
+        function addQ() {
+            const qId = Date.now();
+            const qObj = { id: qId, optCount: 0 };
+            questionData.push(qObj);
+
+            const container = document.getElementById('q-container');
+            const div = document.createElement('div');
+            div.className = "q-block";
+            div.id = `q-block-${qId}`;
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <b style="color:var(--dark)">Question</b>
+                    <button class="btn btn-danger btn-small" onclick="removeQ(${qId})">Remove Question</button>
+                </div>
+                <input id="q-text-${qId}" placeholder="Enter the question here...">
+                <div class="opt-container" id="opt-container-${qId}">
+                    <span class="correct-tag">Correct Option (Top)</span>
+                </div>
+                <button class="btn btn-small btn-accent" style="margin-top:10px; width:100%;" onclick="addOption(${qId})">+ Add Distractor Option</button>
+            `;
+            container.appendChild(div);
+            addOption(qId);
+        }
+
+        function addOption(qId) {
+            const q = questionData.find(x => x.id === qId);
+            const optIndex = q.optCount++;
+            const container = document.getElementById(`opt-container-${qId}`);
+            
+            const div = document.createElement('div');
+            div.className = "opt-row";
+            div.id = `opt-row-${qId}-${optIndex}`;
+            div.innerHTML = `
+                <input id="q-opt-${qId}-${optIndex}" placeholder="${optIndex === 0 ? 'Correct answer' : 'Distractor answer'}" style="margin-bottom:0;">
+                ${optIndex > 0 ? `<button class="btn btn-danger btn-small" onclick="removeOption(${qId}, ${optIndex})">×</button>` : ''}
+            `;
+            container.appendChild(div);
+        }
+
+        function removeOption(qId, optIndex) {
+            document.getElementById(`opt-row-${qId}-${optIndex}`).remove();
+        }
+
+        function removeQ(qId) {
+            document.getElementById(`q-block-${qId}`).remove();
+            questionData = questionData.filter(x => x.id !== qId);
+        }
+
+        async function saveFullStory() {
+            const formattedQuestions = [];
+            for (let q of questionData) {
+                const questionText = document.getElementById(`q-text-${q.id}`).value.trim();
+                const options = [];
+                const optInputs = document.querySelectorAll(`#opt-container-${q.id} input`);
+                optInputs.forEach(input => {
+                    if(input.value.trim()) options.push(input.value.trim());
+                });
+                if (questionText && options.length > 0) {
+                    formattedQuestions.push({ q: questionText, options: options });
+                }
+            }
+
+            const s = {
+                id_string: document.getElementById('sid').value.trim(),
+                title: document.getElementById('st').value.trim(),
+                content: document.getElementById('scon').value.trim(),
+                language: document.getElementById('slang').value,
+                words: document.getElementById('scon').value.trim().split(/\s+/).length,
+                questions: JSON.stringify(formattedQuestions)
+            };
+            if (!s.id_string || !s.title || !s.content) return alert("Missing data.");
+            await window.api.saveStory(s);
+            alert("Story saved with MCQ Quiz!");
+            location.reload();
+        }
+
+        function switchTab(tab) {
+            document.getElementById('sub-branding').classList.toggle('hidden', tab !== 'branding');
+            document.getElementById('sub-users').classList.toggle('hidden', tab !== 'users');
+            document.getElementById('tab-brand-link').classList.toggle('active', tab === 'branding');
+            document.getElementById('tab-user-link').classList.toggle('active', tab === 'users');
+            if (tab === 'users') loadTeachers();
+        }
+
+        async function loadTeachers() {
+            const teachers = await window.api.getAllTeachers();
+            const tbody = document.getElementById('teacher-table-body');
+            tbody.innerHTML = '';
+            teachers.forEach(t => {
+                tbody.innerHTML += `<tr>
+                    <td>${t.name}</td>
+                    <td>${t.email}</td>
+                    <td>Staff</td>
+                    <td><button class="btn btn-danger btn-small" onclick="delTeacher('${t.email}')">Remove</button></td>
+                </tr>`;
+            });
+        }
+
+        async function delTeacher(email) {
+            if (confirm("Remove teacher?")) {
+                await window.api.deleteTeacher(email);
+                loadTeachers();
+            }
+        }
+
+        async function addTeacher() {
+            const t = { name: document.getElementById('tn').value, email: document.getElementById('te').value, password: document.getElementById('tp').value };
+            await window.api.saveTeacher(t);
+            location.reload();
+        }
+		
+		async function exportTeachers() {
+            const data = await window.api.getAllTeachers();
+            await window.api.exportToCSV({ type: 'Teachers', data });
+        }
+
+        async function importTeachers(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const rows = e.target.result.split('\n').slice(1);
+                for (let row of rows) {
+                    const cols = row.split(',').map(s => s.trim().replace(/"/g, ''));
+                    if (cols[0] && cols[1]) {
+                        await window.api.saveTeacher({ 
+                            name: cols[0], 
+                            email: cols[1], 
+                            password: cols[2] || "1234" 
+                        });
+                    }
+                }
+                loadTeachers();
+                alert("Teacher Import Complete");
+            };
+            reader.readAsText(file);
+        }
+
+        // --- REPORTS SECTION LOGIC WITH 3-TIER FILTER ---
+
+        let allStudentsData = []; // Cache for all students
+        let allResultsData = [];  // Cache for all results
+
+        // Initialize when Reports tab is opened
+        async function initReportsTab() {
+            // Fetch data if not already cached
+            if (allStudentsData.length === 0) {
+                allStudentsData = await window.api.getAllStudents();
+                allResultsData = await window.api.getAllResults();
+            }
+            
+            populateGradeDropdown();
+            
+            // Hide preview until generated
+            document.getElementById('report-preview-container').style.display = 'none';
+        }
+
+        // Populate Grade dropdown with unique grades
+        function populateGradeDropdown() {
+            const gradeSelect = document.getElementById('rep-filter-grade');
+            const grades = [...new Set(allStudentsData.map(s => s.grade))].filter(g => g).sort((a, b) => a - b);
+            
+            gradeSelect.innerHTML = '<option value="">-- Select Grade --</option>';
+            grades.forEach(g => {
+                gradeSelect.innerHTML += `<option value="${g}">Grade ${g}</option>`;
+            });
+            
+            // Reset downstream dropdowns
+            const classSelect = document.getElementById('rep-filter-class');
+            const studentSelect = document.getElementById('rep-filter-student');
+            
+            classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+            classSelect.disabled = true;
+            classSelect.style.background = '#f8fafc';
+            
+            studentSelect.innerHTML = '<option value="">-- Select Student --</option>';
+            studentSelect.disabled = true;
+            studentSelect.style.background = '#f8fafc';
+        }
+
+        // When Grade changes, populate Classes (filtered by selected grade)
+       function onGradeChange() {
+    const grade = document.getElementById('rep-filter-grade').value;
+    const classSelect = document.getElementById('rep-filter-class');
+    const studentSelect = document.getElementById('rep-filter-student');
+    
+    // Reset downstream
+    studentSelect.innerHTML = '<option value="">-- Select Student --</option>';
+    studentSelect.disabled = true;
+    studentSelect.style.background = '#f8fafc';
+    
+    if (!grade) {
+        classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+        classSelect.disabled = true;
+        classSelect.style.background = '#f8fafc';
+        return;
+    }
+    
+    // Filter classes by selected grade - support any grade format (8, 9, 10, 11, "Grade 10", etc.)
+    const classesInGrade = [...new Set(allStudentsData
+        .filter(s => s.grade && String(s.grade).trim() === grade.trim())
+        .map(s => s.class_id))]
+        .filter(c => c)
+        .sort((a, b) => {
+            // Extract numeric parts for sorting (e.g., "11.3" -> 11.3, "10.7" -> 10.7)
+            const numA = parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0;
+            const numB = parseFloat(String(b).replace(/[^0-9.]/g, '')) || 0;
+            return numA - numB;
+        });
+    
+    classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+    classesInGrade.forEach(c => {
+        classSelect.innerHTML += `<option value="${c}">Class ${c}</option>`;
+    });
+    
+    classSelect.disabled = false;
+    classSelect.style.background = 'white';
+}
+
+        // When Class changes, populate Students
+        function onClassChange() {
+            const grade = document.getElementById('rep-filter-grade').value;
+            const classId = document.getElementById('rep-filter-class').value;
+            const studentSelect = document.getElementById('rep-filter-student');
+            
+            if (!classId || !grade) {
+                studentSelect.innerHTML = '<option value="">-- Select Student --</option>';
+                studentSelect.disabled = true;
+                studentSelect.style.background = '#f8fafc';
+                return;
+            }
+            
+            // Filter students by both grade AND class
+            const studentsInClass = allStudentsData.filter(s => 
+                s.grade === grade && s.class_id === classId
+            );
+            
+            studentSelect.innerHTML = '<option value="">-- Select Student --</option>';
+            studentsInClass.forEach(s => {
+                studentSelect.innerHTML += `<option value="${s.email}">${s.name}</option>`;
+            });
+            
+            studentSelect.disabled = false;
+            studentSelect.style.background = 'white';
+        }
+
+        // Preview Report for selected student
+        async function previewReport() {
+            const studentEmail = document.getElementById('rep-filter-student').value;
+            const classId = document.getElementById('rep-filter-class').value;
+            const grade = document.getElementById('rep-filter-grade').value;
+            
+            if (!studentEmail || !classId || !grade) {
+                alert("Please select Grade, Class, and Student.");
+                return;
+            }
+            
+            // Find student data
+            const student = allStudentsData.find(s => s.email === studentEmail);
+            if (!student) {
+                alert("Student not found.");
+                return;
+            }
+            
+            // Get student's results
+            const studentResults = allResultsData
+                .filter(r => r.email === studentEmail && r.timestamp !== null)
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Newest first
+            
+            // Update Report Header
+            document.getElementById('report-student-name').textContent = student.name;
+            document.getElementById('report-grade').textContent = grade;
+            document.getElementById('report-class').textContent = classId;
+            document.getElementById('report-email').textContent = student.email;
+            document.getElementById('report-date').textContent = 'Issued: ' + new Date().toLocaleDateString();
+            
+            // Apply branding
+            const settings = await window.api.getSettings();
+            if (settings) {
+                if (settings.schoolName) {
+                    document.getElementById('report-school-name').textContent = settings.schoolName;
+                }
+                if (settings.logo) {
+                    const logoImg = document.getElementById('report-logo');
+                    logoImg.src = settings.logo.replace(/['\"]+/g, '');
+                    logoImg.style.display = 'block';
+                }
+            }
+            
+            // Calculate Stats
+            if (studentResults.length > 0) {
+                const speeds = studentResults.map(r => r.wpm);
+                const accuracies = studentResults.map(r => r.accuracy);
+                
+                const avgSpeed = Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length);
+                const avgAcc = Math.round(accuracies.reduce((a, b) => a + b, 0) / accuracies.length);
+                const baseline = speeds[speeds.length - 1]; // Oldest/First reading
+                
+                document.getElementById('stat-baseline').textContent = baseline;
+                document.getElementById('stat-avg-speed').textContent = avgSpeed + ' WPM';
+                document.getElementById('stat-avg-acc').textContent = avgAcc + '%';
+                document.getElementById('stat-level').textContent = 'Above Grade ' + (grade || '8') + '+';
+                
+                // Populate History Table (Latest 5)
+                const tbody = document.getElementById('report-history-body');
+                tbody.innerHTML = '';
+                
+                studentResults.slice(0, 5).forEach(r => {
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid #f1f5f9';
+                    row.innerHTML = `
+                        <td style="padding: 12px 15px; font-size: 14px; color: #334155;">${new Date(r.timestamp).toLocaleDateString()}</td>
+                        <td style="padding: 12px 15px; font-size: 14px; color: #334155; font-weight: 500;">${r.story_id_string || 'Reading Assessment'}</td>
+                        <td style="padding: 12px 15px; font-size: 14px; color: var(--primary); font-weight: 600;">${r.wpm} WPM</td>
+                        <td style="padding: 12px 15px; font-size: 14px; color: ${r.accuracy >= 80 ? '#10b981' : (r.accuracy >= 50 ? '#f59e0b' : '#ef4444')}; font-weight: 600;">${r.accuracy}%</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                // No data state
+                document.getElementById('stat-baseline').textContent = '--';
+                document.getElementById('stat-avg-speed').textContent = '-- WPM';
+                document.getElementById('stat-avg-acc').textContent = '--%';
+                document.getElementById('stat-level').textContent = 'No Data';
+                
+                document.getElementById('report-history-body').innerHTML = `
+                    <tr>
+                        <td colspan="4" style="padding: 40px; text-align: center; color: #94a3b8;">
+                            No assessment history found for this student.
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Show the preview
+            document.getElementById('report-preview-container').style.display = 'block';
+            
+            // Scroll to preview
+            document.getElementById('report-preview-container').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Print report for selected class (respects grade/class selection)
+        async function printClassReport() {
+            const grade = document.getElementById('rep-filter-grade').value;
+            const classId = document.getElementById('rep-filter-class').value;
+            
+            if (!grade) {
+                alert("Please select a grade first.");
+                return;
+            }
+            
+            // If class selected, print that class. If only grade selected, print all classes in that grade
+            let studentsToPrint;
+            if (classId) {
+                studentsToPrint = allStudentsData.filter(s => s.grade === grade && s.class_id === classId);
+            } else {
+                studentsToPrint = allStudentsData.filter(s => s.grade === grade);
+            }
+            
+            if (studentsToPrint.length === 0) {
+                alert("No students found.");
+                return;
+            }
+            
+            if (!confirm(`Print reports for ${studentsToPrint.length} students in Grade ${grade}${classId ? ' Class ' + classId : ''}?`)) {
+                return;
+            }
+            
+            generateBatchPrintWindow(studentsToPrint, `Grade ${grade}${classId ? ' Class ' + classId : ''}`);
+        }
+
+        // Print all students in school
+        async function printAllReports() {
+            if (allStudentsData.length === 0) {
+                alert("No students in database.");
+                return;
+            }
+            
+            if (!confirm(`This will generate reports for all ${allStudentsData.length} students. Continue?`)) {
+                return;
+            }
+            
+            generateBatchPrintWindow(allStudentsData, 'All Students');
+        }
+
+        // Helper function to generate batch print window
+        function generateBatchPrintWindow(students, title) {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Progress Reports - ' + title + '</title>');
+            printWindow.document.write('<style>');
+            printWindow.document.write(`
+                body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+                .report-page { page-break-after: always; padding: 40px; }
+                .report-page:last-child { page-break-after: auto; }
+                .header { background: #001a3d; color: white; padding: 30px; display: flex; justify-content: space-between; }
+                .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 20px; background: #f8fafc; }
+                .stat-box { background: white; padding: 15px; border-radius: 8px; text-align: center; border-top: 3px solid #004a99; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th { background: #f1f5f9; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase; }
+                td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+                .signatures { display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; }
+                .signature-line { flex: 1; margin: 0 20px; border-top: 1px solid #000; padding-top: 10px; text-align: center; }
+            `);
+            printWindow.document.write('</style></head><body>');
+            
+            for (const student of students) {
+                const results = allResultsData
+                    .filter(r => r.email === student.email && r.timestamp !== null)
+                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                
+                const speeds = results.map(r => r.wpm);
+                const avgSpeed = speeds.length > 0 ? Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length) : '--';
+                const baseline = speeds.length > 0 ? speeds[speeds.length - 1] : '--';
+                
+                printWindow.document.write(`
+                    <div class="report-page">
+                        <div class="header">
+                            <div>
+                                <h1 style="margin: 0;">PROGRESS REPORT</h1>
+                                <p style="margin: 5px 0 0 0; opacity: 0.8;">${student.name}</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <p style="margin: 0; font-size: 12px;">Grade ${student.grade || '--'} | Class ${student.class_id || '--'}</p>
+                                <p style="margin: 5px 0 0 0; font-size: 12px;">${new Date().toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-box"><div style="font-size: 10px; color: #64748b;">Baseline</div><div style="font-size: 18px; font-weight: bold;">${baseline}</div></div>
+                            <div class="stat-box"><div style="font-size: 10px; color: #64748b;">Avg Speed</div><div style="font-size: 18px; font-weight: bold;">${avgSpeed} WPM</div></div>
+                            <div class="stat-box"><div style="font-size: 10px; color: #64748b;">Tests Taken</div><div style="font-size: 18px; font-weight: bold;">${results.length}</div></div>
+                            <div class="stat-box"><div style="font-size: 10px; color: #64748b;">Grade</div><div style="font-size: 18px; font-weight: bold;">${student.grade || '--'}</div></div>
+                        </div>
+                        <table>
+                            <thead><tr><th>Date</th><th>Story</th><th>Speed</th><th>Accuracy</th></tr></thead>
+                            <tbody>
+                                ${results.length > 0 ? results.slice(0, 5).map(r => `
+                                    <tr>
+                                        <td>${new Date(r.timestamp).toLocaleDateString()}</td>
+                                        <td>${r.story_id_string || 'Assessment'}</td>
+                                        <td>${r.wpm} WPM</td>
+                                        <td>${r.accuracy}%</td>
+                                    </tr>
+                                `).join('') : '<tr><td colspan="4" style="text-align: center; color: #94a3b8;">No data available</td></tr>'}
+                            </tbody>
+                        </table>
+                        <div class="signatures">
+                            <div class="signature-line">Teacher Signature</div>
+                            <div class="signature-line">Principal Signature</div>
+                        </div>
+                    </div>
+                `);
+            }
+            
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        window.onload = async () => {
+            await applyBranding();
+            allStudents = await window.api.getAllStudents();
+            loadRoster();
+        };
+    </script>
+</body>
+</html>
