@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learner Portal</title>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=OpenDyslexic&family=Arial&family=Verdana&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* These will be overwritten by your Teacher Settings */
+            --primary: #004a99;
+            --dark: #001a3d;
+            --accent: #10b981;
+            --bg: #f8fafc;
+            --text-size: 16px;
+            --font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body { 
+            font-family: var(--font-family);
+            background: var(--bg); 
+            margin: 0; display: flex; height: 100vh; overflow: hidden;
+            font-size: var(--text-size);
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 260px;
+            background: var(--dark);
+            color: white;
+            display: flex; flex-direction: column; padding: 0;
+			position: fixed;
+			height: 100vh;
+			left: 0;
+			top: 0;
+			z-index: 100;
+            -webkit-app-region: drag;
+        }
+
+        .sidebar-header { 
+            padding: 0 20px 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        /* The Logo Fix */
+        #sidebar-logo-img {
+            max-width: 80%;
+            max-height: 70px;
+            margin-bottom: 10px;
+            object-fit: contain;
+            display: none; /* Hidden until loaded */
+        }
+
+        .nav-item {
+            padding: 12px 25px;
+            display: flex; align-items: center; gap: 12px;
+            color: rgba(255,255,255,0.6);
+            cursor: pointer;
+            -webkit-app-region: no-drag;
+        }
+
+        .nav-item.active { 
+            background: var(--primary);
+            color: white;
+        }
+
+        /* --- CONTENT --- */
+        .main { 
+            margin-left: 260px; /* This pushes the content to the right of the 260px sidebar */
+            width: calc(100% - 260px); /* This makes the content fill the rest of the screen */
+            padding: 40px; 
+            overflow-y: auto; 
+            box-sizing: border-box; /* This keeps the padding from making the page too wide */
+        }
+        
+        .avatar {
+            width: 50px; height: 50px;
+            background: var(--primary);
+            color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px;
+        }
+
+        .card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .card-accent { height: 5px; width: 60px; border-radius: 10px; margin-bottom: 15px; }
+
+        /* Epilepsy-friendly speed test styles */
+        .epilepsy-safe .speed-word-display {
+            transition: opacity 0.3s ease-in-out !important;
+            animation: none !important;
+        }
+        
+        .epilepsy-safe #speed-flash-display {
+            background: #f0f4f8 !important;
+        }
+
+        .speed-word-display {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin: 0;
+            transition: opacity 0.15s ease-in-out;
+        }
+
+        /* Settings panel styles */
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .setting-label {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .setting-description {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #cbd5e1;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(24px);
+        }
+
+        select, input[type="range"] {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .font-preview {
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 2px dashed #cbd5e1;
+        }
+
+        /* High contrast mode for accessibility */
+        .high-contrast {
+            filter: contrast(1.2);
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* GAME STYLES */
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .game-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .game-tab {
+            padding: 12px 24px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+
+        .game-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .game-area {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            min-height: 400px;
+        }
+
+        /* Word Search Styles */
+        .wordsearch-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 40px);
+            gap: 2px;
+            justify-content: center;
+            margin: 20px 0;
+            user-select: none;
+        }
+
+        .wordsearch-cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f5f9;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .wordsearch-cell:hover {
+            background: #e2e8f0;
+        }
+
+        .wordsearch-cell.selected {
+            background: var(--primary);
+            color: white;
+        }
+
+        .wordsearch-cell.found {
+            background: var(--accent);
+            color: white;
+        }
+
+        .word-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .word-item {
+            padding: 8px 16px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .word-item.found {
+            background: var(--accent);
+            color: white;
+            text-decoration: line-through;
+        }
+
+        /* Memory Game Styles */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .memory-card {
+            width: 100px;
+            height: 100px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: white;
+            transition: transform 0.3s;
+            transform-style: preserve-3d;
+        }
+
+        .memory-card.flipped {
+            background: white;
+            color: var(--dark);
+            border: 2px solid var(--primary);
+        }
+
+        .memory-card.matched {
+            background: var(--accent);
+            transform: scale(0.95);
+        }
+
+        /* Spelling Game Styles */
+        .spelling-word {
+            font-size: 2rem;
+            text-align: center;
+            margin: 20px 0;
+            letter-spacing: 8px;
+            font-weight: bold;
+            color: var(--dark);
+        }
+
+        .spelling-input {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .spelling-letter {
+            width: 50px;
+            height: 50px;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            background: white;
+        }
+
+        .spelling-letter.correct {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .spelling-letter.wrong {
+            background: var(--error);
+            color: white;
+            border-color: var(--error);
+        }
+
+        .spelling-keyboard {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .key-btn {
+            padding: 12px 18px;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .key-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .game-score {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .cheat-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            z-index: 1000;
+            text-align: center;
+            max-width: 400px;
+            border: 4px solid #dc2626;
+        }
+
+        .cheat-popup h2 {
+            color: #dc2626;
+            margin-bottom: 15px;
+        }
+
+        .cheat-popup button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+
+    <div class="sidebar" style="display: flex; flex-direction: column; height: 100vh; background: var(--dark); color: white; width: var(--sidebar-w); position: fixed; left: 0; top: 0;">
+    
+    <div style="padding: 25px; text-align: center;">
+        <div id="fallback-icon" style="font-size: 50px; margin-bottom: 10px;"><i class="fa fa-graduation-cap"></i></div>
+        <img id="sidebar-logo-img" style="display:none; width: 80px; margin: 0 auto 10px auto; border-radius: 10px;">
+        <div id="school-name-text" style="font-weight: 800; font-size: 1.1rem; letter-spacing: 1px;">LITERACY PRO</div>
+    </div>
+
+    <div style="flex: 1; padding: 10px;">
+        <div id="nav-home" class="nav-item active" onclick="showSection('home-section')">
+            <i class="fa fa-home"></i> Dashboard
+        </div>
+        <div id="nav-assignment" class="nav-item" onclick="showSection('assignment-section')">
+            <i class="fa fa-book-open"></i> My Assignment
+        </div>
+        <div id="nav-performance" class="nav-item" onclick="showSection('performance-section')">
+            <i class="fa fa-chart-line"></i> Performance
+        </div>
+        <div id="nav-games" class="nav-item" onclick="showSection('games-section')">
+            <i class="fa fa-gamepad"></i> Word Games
+        </div>
+    </div>
+
+    <div id="sidebar-footer" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;">
+        <div id="nav-settings" class="nav-item" onclick="showSection('settings-section')">
+            <i class="fa fa-cog"></i> Settings
+        </div>
+        <div class="nav-item" onclick="window.api.switchPage('index.html')" style="color: #fda4af; margin-top: 5px;">
+            <i class="fa fa-sign-out-alt"></i> Logout
+        </div>
+    </div>
+</div>
+
+    <div class="main">
+    <div id="home-section" class="content-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+            <div>
+                <h1 id="greeting" style="margin:0; color: var(--dark);">Hello!</h1>
+                <p id="student-info" style="color: #64748b; margin-top: 5px;"></p>
+            </div>
+            <div class="avatar" id="user-initials">?</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card" onclick="showSection('assignment-section')" style="cursor:pointer;">
+                <div class="card-accent" style="background: var(--primary);"></div>
+                <h3>Daily Lessons</h3>
+                <p>Click here to start your 3-step assignment.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-accent" style="background: var(--accent);"></div>
+                <h3 id="last-wpm">-- WPM</h3>
+                <p>Accuracy: <span id="last-acc">--%</span></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="assignment-section" class="content-section" style="display:none;">
+        <h1 style="color: var(--dark); margin-bottom: 20px;">Assignment</h1>
+        
+        <div id="step1-card" class="card" style="text-align: center; max-width: 600px; margin: 0 auto;">
+            <div class="card-accent" style="background: var(--accent); width: 100px; margin: 0 auto 15px auto;"></div>
+            <span style="font-weight: bold; color: var(--accent);">STEP 1</span>
+            <h2>Focus Words</h2>
+            <p>Practice these words out loud.</p>
+            <div id="focus-words-list" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin: 20px 0;">
+                </div>
+            <button class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:15px; font-weight:bold; cursor:pointer;" onclick="goToStep(2)">Next Step →</button>
+        </div>
+
+        <div id="step2-card" class="card" style="display:none; text-align: center; max-width: 600px; margin: 0 auto;">
+    <div class="card-accent" style="background: var(--primary); width: 100px; margin: 0 auto 15px auto;"></div>
+    <span style="font-weight: bold; color: var(--primary);">STEP 2</span>
+    <h2>30-Second Speed Drill</h2>
+    
+    <div id="speed-timer" style="font-size: 3rem; font-weight: bold; margin: 10px;">30s</div>
+    
+    <div id="speed-flash-display" style="height: 150px; display: flex; align-items: center; justify-content: center; background: #f9f9f9; border-radius: 10px; margin-bottom: 20px;">
+        <span style="color: #999;">Get ready...</span>
+    </div>
+
+    <div id="hidden-story-text" style="display: none;"></div>
+
+    <button id="start-speed-btn" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:15px; font-weight:bold; cursor:pointer;" onclick="startSpeedDrill()">Start Speed Drill</button>
+</div>
+
+      <div id="step3-card" class="card" style="display:none; text-align: center; max-width: 800px; margin: 0 auto;">
+    <div class="card-accent" style="background: var(--accent); width: 100px; margin: 0 auto 15px auto;"></div>
+    <span style="font-weight: bold; color: var(--accent);">STEP 3</span>
+    
+    <div id="pre-read-state">
+        <h2>Final Assessment</h2>
+        <p style="font-size: 1.1rem; color: #64748b; margin-bottom: 25px;">
+            The story is hidden. Click the button below to reveal the text and start your timer. 
+            Read as fast and accurately as you can!
+        </p>
+        <button id="start-reading-btn" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:20px; font-weight:bold; cursor:pointer; font-size: 1.2rem;" onclick="startFinalAssessment()">
+            <i class="fa fa-play"></i> START READING NOW
+        </button>
+    </div>
+
+    <div id="reading-state" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2 style="margin:0;">Read Out Loud</h2>
+            <div id="live-timer" style="font-size: 1.5rem; font-weight: bold; color: var(--accent); background: #fff1f2; padding: 5px 15px; border-radius: 10px; border: 1px solid var(--accent);">0s</div>
+        </div>
+        
+        <div id="assessment-text-box" style="text-align:left; padding:25px; background:#fff; border:2px solid var(--primary); border-radius:15px; margin-bottom:20px; font-size: 1.4rem; line-height: 1.8; color: #1e293b;"></div>
+        
+        <button id="finish-reading-btn" class="card" style="background: var(--accent); color:white; border:none; width:100%; padding:20px; font-weight:bold; border-radius:15px; cursor:pointer;" onclick="checkCheating()">
+            <i class="fa fa-question-circle"></i> I AM FINISHED - TAKE QUIZ
+        </button>
+    </div>
+
+    <div id="quiz-state" style="display: none; text-align: left;">
+        <h3 style="color: var(--primary); text-align: center;"><i class="fa fa-pen"></i> Quick Check</h3>
+        <p style="text-align: center;">Answer these questions about the story:</p>
+        <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
+        <div id="quiz-container" style="margin-top: 20px;">
+            </div>
+        <button onclick="submitFinalResults()" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:20px; font-weight:bold; margin-top:20px; cursor:pointer; border-radius: 15px;">
+            Submit My Results
+        </button>
+    </div>
+</div>
+    </div>
+
+    <div id="performance-section" class="content-section" style="display:none;">
+    <div class="card" style="max-width: 900px; margin: 0 auto;">
+        <h2 style="color: var(--primary); margin-bottom: 5px;">Performance Analytics</h2>
+        <p style="color: #64748b; margin-bottom: 25px;">Track your reading speed and accuracy growth over time.</p>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;">
+                <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Avg. Speed</span>
+                <div id="stat-avg-wpm" style="font-size: 1.8rem; font-weight: 800; color: var(--primary);">--</div>
+            </div>
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;">
+                <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Best Speed</span>
+                <div id="stat-best-wpm" style="font-size: 1.8rem; font-weight: 800; color: var(--accent);">--</div>
+            </div>
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;">
+                <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Avg. Accuracy</span>
+                <div id="stat-avg-acc" style="font-size: 1.8rem; font-weight: 800; color: var(--primary);">--</div>
+            </div>
+        </div>
+
+        <div style="background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; height: 350px;">
+            <canvas id="growthChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- GAMES SECTION -->
+<div id="games-section" class="content-section" style="display:none;">
+    <div class="game-container">
+        <h1 style="color: var(--dark); margin-bottom: 20px;"><i class="fa fa-gamepad"></i> Word Games</h1>
+        <p style="color: #64748b; margin-bottom: 20px;">Practice your focus words with fun games!</p>
+        
+        <div class="game-tabs">
+            <button class="game-tab active" onclick="switchGame('wordsearch')">🔍 Word Search</button>
+            <button class="game-tab" onclick="switchGame('memory')">🧠 Memory Match</button>
+            <button class="game-tab" onclick="switchGame('spelling')">✏️ Spelling Bee</button>
+        </div>
+
+        <div class="game-area" id="game-area">
+            <!-- Word Search Game -->
+            <div id="wordsearch-game">
+                <div class="game-score">Words Found: <span id="ws-score">0</span> / <span id="ws-total">0</span></div>
+                <div id="wordsearch-grid" class="wordsearch-grid"></div>
+                <div class="word-list" id="word-list"></div>
+                <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initWordSearch()">New Game</button>
+            </div>
+
+            <!-- Memory Game -->
+            <div id="memory-game" style="display: none;">
+                <div class="game-score">Matches: <span id="mem-score">0</span> / <span id="mem-total">0</span></div>
+                <div id="memory-grid" class="memory-grid"></div>
+                <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initMemoryGame()">New Game</button>
+            </div>
+
+            <!-- Spelling Game -->
+            <div id="spelling-game" style="display: none;">
+                <div class="game-score">Score: <span id="spell-score">0</span> | Word <span id="spell-current">1</span> / <span id="spell-total">0</span></div>
+                <div id="spelling-display" class="spelling-word"></div>
+                <div id="spelling-inputs" class="spelling-input"></div>
+                <div class="spelling-keyboard" id="spelling-keyboard"></div>
+                <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initSpellingGame()">New Game</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="settings-section" class="content-section" style="display:none;">
+    <div class="card" style="max-width: 700px; margin: 0 auto;">
+        <h2 style="color: var(--dark); margin-bottom: 5px;">Accessibility Settings</h2>
+        <p style="color: #64748b; margin-bottom: 25px;">Customize your reading experience</p>
+
+        <!-- Font Selection -->
+        <div class="setting-row">
+            <div>
+                <div class="setting-label">Reading Font</div>
+                <div class="setting-description">Choose a font that's comfortable for you to read</div>
+            </div>
+            <select id="font-select" onchange="updateFont()">
+                <option value="'Segoe UI', Tahoma, sans-serif">Default (Segoe UI)</option>
+                <option value="'OpenDyslexic', 'Comic Sans MS', sans-serif">OpenDyslexic (Dyslexia-friendly)</option>
+                <option value="'Comic Neue', 'Comic Sans MS', cursive">Comic Neue (Easy reading)</option>
+                <option value="Verdana, Geneva, sans-serif">Verdana (High readability)</option>
+                <option value="Arial, Helvetica, sans-serif">Arial (Clean & simple)</option>
+                <option value="'Courier New', monospace">Courier (Fixed width)</option>
+            </select>
+        </div>
+
+        <div class="font-preview" id="font-preview">
+            The quick brown fox jumps over the lazy dog.
+        </div>
+
+        <!-- Text Size -->
+        <div class="setting-row">
+            <div>
+                <div class="setting-label">Text Size</div>
+                <div class="setting-description">Adjust the size of text throughout the app</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-size: 14px;">A</span>
+                <input type="range" id="text-size-slider" min="12" max="24" value="16" style="width: 150px;" oninput="updateTextSize()">
+                <span style="font-size: 20px;">A</span>
+                <span id="text-size-value" style="min-width: 45px; text-align: right; font-weight: 600; color: var(--primary);">16px</span>
+            </div>
+        </div>
+
+        <!-- Epilepsy Mode -->
+        <div class="setting-row" style="background: #fef2f2; border-radius: 8px; margin: 0 -25px; padding: 20px 25px;">
+            <div>
+                <div class="setting-label" style="color: #dc2626;"><i class="fa fa-heart-pulse"></i> Photosensitivity Mode</div>
+                <div class="setting-description">Disable speed test flashing animations. Recommended for users with epilepsy or light sensitivity.</div>
+            </div>
+            <div class="toggle-switch" id="epilepsy-toggle" onclick="toggleEpilepsyMode()"></div>
+        </div>
+
+        <!-- Reduced Motion (additional accessibility) -->
+        <div class="setting-row">
+            <div>
+                <div class="setting-label">Reduced Motion</div>
+                <div class="setting-description">Minimize animations throughout the application</div>
+            </div>
+            <div class="toggle-switch" id="motion-toggle" onclick="toggleReducedMotion()"></div>
+        </div>
+
+        <!-- High Contrast -->
+        <div class="setting-row">
+            <div>
+                <div class="setting-label">High Contrast</div>
+                <div class="setting-description">Increase contrast for better visibility</div>
+            </div>
+            <div class="toggle-switch" id="contrast-toggle" onclick="toggleHighContrast()"></div>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 15px; background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary);">
+                <i class="fa fa-info-circle" style="color: var(--primary); font-size: 20px;"></i>
+                <div>
+                    <div style="font-weight: 600; color: var(--dark);">Your settings are saved automatically</div>
+                    <div style="font-size: 13px; color: #64748b;">They will apply every time you log in.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<!-- CHEAT POPUP -->
+<div id="cheat-overlay" class="overlay" style="display: none;"></div>
+<div id="cheat-popup" class="cheat-popup" style="display: none;">
+    <i class="fa fa-exclamation-triangle" style="font-size: 48px; color: #dc2626; margin-bottom: 15px;"></i>
+    <h2>Don't Cheat! 🚫</h2>
+    <p>You finished reading way too fast! It would be impossible to read that many words in such a short time.</p>
+    <p style="font-size: 0.9rem; color: #64748b; margin-top: 10px;">Take your time and read the story properly.</p>
+    <button onclick="closeCheatPopup()">I Understand</button>
+</div>
+
+<script>
+
+// --- ANTI-CHEAT VARIABLES ---
+let readingStartTime = null;
+let currentStoryWordCount = 0;
+const MIN_READING_SPEED_WPM = 800; // Impossibly fast reading speed threshold
+
+// --- GAME VARIABLES ---
+let currentGameWords = [];
+let wordSearchGrid = [];
+let foundWords = [];
+let selectedCells = [];
+let memoryCards = [];
+let memoryFlipped = [];
+let memoryMatches = 0;
+let spellingWords = [];
+let currentSpellIndex = 0;
+let spellScore = 0;
+let currentSpellWord = "";
+let spellAttempts = [];
+
+// --- ACCESSIBILITY SETTINGS MANAGEMENT ---
+const studentSettings = {
+    font: "'Segoe UI', Tahoma, sans-serif",
+    textSize: 16,
+    epilepsyMode: false,
+    reducedMotion: false,
+    highContrast: false
+};
+
+function loadAccessibilitySettings() {
+    const student = JSON.parse(sessionStorage.getItem('student'));
+    if (!student) return;
+    
+    const saved = localStorage.getItem(`accessibility_${student.email}`);
+    if (saved) {
+        Object.assign(studentSettings, JSON.parse(saved));
+        applyAccessibilitySettings();
+    }
+}
+
+function saveAccessibilitySettings() {
+    const student = JSON.parse(sessionStorage.getItem('student'));
+    if (!student) return;
+    localStorage.setItem(`accessibility_${student.email}`, JSON.stringify(studentSettings));
+}
+
+function applyAccessibilitySettings() {
+    // Apply font
+    document.documentElement.style.setProperty('--font-family', studentSettings.font);
+    document.getElementById('font-select').value = studentSettings.font;
+    document.getElementById('font-preview').style.fontFamily = studentSettings.font;
+    
+    // Apply text size
+    document.documentElement.style.setProperty('--text-size', studentSettings.textSize + 'px');
+    document.getElementById('text-size-slider').value = studentSettings.textSize;
+    document.getElementById('text-size-value').textContent = studentSettings.textSize + 'px';
+    
+    // Apply epilepsy mode
+    const epilepsyToggle = document.getElementById('epilepsy-toggle');
+    if (studentSettings.epilepsyMode) {
+        epilepsyToggle.classList.add('active');
+        document.body.classList.add('epilepsy-safe');
+    } else {
+        epilepsyToggle.classList.remove('active');
+        document.body.classList.remove('epilepsy-safe');
+    }
+    
+    // Apply reduced motion
+    const motionToggle = document.getElementById('motion-toggle');
+    if (studentSettings.reducedMotion) {
+        motionToggle.classList.add('active');
+        document.body.style.setProperty('animation-duration', '0.01ms');
+    } else {
+        motionToggle.classList.remove('active');
+        document.body.style.removeProperty('animation-duration');
+    }
+    
+    // Apply high contrast
+    const contrastToggle = document.getElementById('contrast-toggle');
+    if (studentSettings.highContrast) {
+        contrastToggle.classList.add('active');
+        document.body.classList.add('high-contrast');
+    } else {
+        contrastToggle.classList.remove('active');
+        document.body.classList.remove('high-contrast');
+    }
+    
+    // Update speed test visibility based on epilepsy mode
+    updateSpeedTestVisibility();
+}
+
+function updateFont() {
+    studentSettings.font = document.getElementById('font-select').value;
+    document.getElementById('font-preview').style.fontFamily = studentSettings.font;
+    applyAccessibilitySettings();
+    saveAccessibilitySettings();
+}
+
+function updateTextSize() {
+    studentSettings.textSize = parseInt(document.getElementById('text-size-slider').value);
+    applyAccessibilitySettings();
+    saveAccessibilitySettings();
+}
+
+function toggleEpilepsyMode() {
+    studentSettings.epilepsyMode = !studentSettings.epilepsyMode;
+    applyAccessibilitySettings();
+    saveAccessibilitySettings();
+    
+    // Show notification
+    if (studentSettings.epilepsyMode) {
+        alert("Photosensitivity Mode enabled. The speed drill has been disabled for your safety. You can still complete the reading assessment in Step 3.");
+    }
+}
+
+function toggleReducedMotion() {
+    studentSettings.reducedMotion = !studentSettings.reducedMotion;
+    applyAccessibilitySettings();
+    saveAccessibilitySettings();
+}
+
+function toggleHighContrast() {
+    studentSettings.highContrast = !studentSettings.highContrast;
+    applyAccessibilitySettings();
+    saveAccessibilitySettings();
+}
+
+function updateSpeedTestVisibility() {
+    const navAssignment = document.getElementById('nav-assignment');
+    // If epilepsy mode is on, we'll skip step 2 automatically when they start
+}
+
+function loadSettingsData() {
+    const student = JSON.parse(sessionStorage.getItem('student'));
+    if (student) {
+        document.getElementById('set-name').innerText = student.name;
+        document.getElementById('set-email').innerText = student.email;
+        document.getElementById('set-class').innerText = student.class_id || 'Not Assigned';
+        document.getElementById('set-initials').innerText = student.name[0].toUpperCase();
+    }
+    // Load accessibility settings
+    loadAccessibilitySettings();
+}
+
+        // --- GLOBAL VARIABLES ---
+    let speedInterval;
+    let speedTimer;
+    let currentWordIndex = 0;
+    let storyWords = [];
+    
+    let startTime; 
+    let liveTimerInterval;
+    let finalWpm = 0;
+    let currentStoryData = null;
+
+    // 1. NAVIGATION LOGIC
+ function showSection(id) {
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(sec => sec.style.display = 'none');
+    // Show the clicked one
+    document.getElementById(id).style.display = 'block';
+    
+    // Remove 'active' class from all nav items
+    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+    
+    // Highlight the correct nav item
+    if(id === 'home-section') document.getElementById('nav-home').classList.add('active');
+    if(id === 'assignment-section') {
+        document.getElementById('nav-assignment').classList.add('active');
+        loadAssignmentContent(); 
+    }
+    if(id === 'performance-section') {
+        document.getElementById('nav-performance').classList.add('active');
+        loadPerformanceData();
+    }
+    if(id === 'games-section') {
+        document.getElementById('nav-games').classList.add('active');
+        initWordSearch(); // Default game
+    }
+    if(id === 'settings-section') {
+        document.getElementById('nav-settings').classList.add('active');
+        loadSettingsData(); // Pulls the student's info for the settings page
+    }
+}
+
+    function goToStep(stepNum) {
+        // If epilepsy mode is on and trying to go to step 2, skip to step 3
+        if (stepNum === 2 && studentSettings.epilepsyMode) {
+            stepNum = 3;
+        }
+        
+        document.querySelectorAll('.card[id^="step"]').forEach(card => card.style.display = 'none');
+        document.getElementById(`step${stepNum}-card`).style.display = 'block';
+        
+        if(stepNum === 2) {
+            const btn = document.getElementById('start-speed-btn');
+            if(btn) {
+                btn.style.display = 'block';
+                btn.innerText = "Start Speed Drill";
+            }
+            document.getElementById('speed-flash-display').innerHTML = '<span style="color: #999;">Get ready...</span>';
+            document.getElementById('speed-timer').innerText = "30s";
+        }
+    }
+
+    // 2. STEP 2: SPEED DRILL LOGIC (Epilepsy-Optimized)
+function startSpeedDrill() {
+    // Safety check for epilepsy mode
+    if (studentSettings.epilepsyMode) {
+        alert("Speed drill is disabled in Photosensitivity Mode. Proceeding to reading assessment.");
+        goToStep(3);
+        return;
+    }
+    
+    const hiddenText = document.getElementById('hidden-story-text').innerText;
+    storyWords = hiddenText.trim().split(/\s+/).filter(w => w.length > 0); // Filter out empty strings
+    currentWordIndex = 0;
+
+    const displayBox = document.getElementById('speed-flash-display');
+    const timerDisplay = document.getElementById('speed-timer');
+    const startBtn = document.getElementById('start-speed-btn');
+
+    const lastWpmValue = parseInt(document.getElementById('last-wpm').innerText) || 150;
+    
+    // Epilepsy-friendly: slower transitions if reduced motion is on
+    const speedMultiplier = studentSettings.reducedMotion ? 1.5 : 1;
+    const msPerWord = (60 / lastWpmValue) * 1000 * speedMultiplier;
+    
+    let timeLeft = 30;
+
+    if(startBtn) startBtn.style.display = 'none';
+
+    // Clear any existing intervals
+    clearInterval(speedInterval);
+    clearInterval(speedTimer);
+    
+    // Apply epilepsy-safe class if needed
+    if (studentSettings.reducedMotion) {
+        displayBox.classList.add('epilepsy-safe');
+    }
+
+    // Show first word immediately
+    if (storyWords.length > 0) {
+        displayBox.innerHTML = `<h1 class="speed-word-display">${storyWords[0]}</h1>`;
+        currentWordIndex = 1;
+    }
+
+    speedInterval = setInterval(() => {
+        if (currentWordIndex < storyWords.length) {
+            // Fade effect instead of hard flash
+            const word = storyWords[currentWordIndex];
+            displayBox.style.opacity = '0';
+            
+            setTimeout(() => {
+                displayBox.innerHTML = `<h1 class="speed-word-display">${word}</h1>`;
+                displayBox.style.opacity = '1';
+            }, studentSettings.reducedMotion ? 150 : 75);
+            
+            currentWordIndex++;
+        } else {
+            clearInterval(speedInterval);
+            displayBox.innerHTML = "<h2 style='color: var(--primary);'>End of Story!</h2>";
+        }
+    }, msPerWord);
+
+    speedTimer = setInterval(() => {
+        timeLeft--;
+        timerDisplay.innerText = timeLeft + "s";
+        if (timeLeft <= 0) stopSpeedDrill();
+    }, 1000);
+}
+
+    function stopSpeedDrill() {
+        clearInterval(speedInterval);
+        clearInterval(speedTimer);
+        document.getElementById('speed-flash-display').innerHTML = "<h2>Drill Complete!</h2><p>Ready for the full assessment?</p>";
+        const startBtn = document.getElementById('start-speed-btn');
+        if(startBtn) {
+            startBtn.innerText = "Go to Step 3 →";
+            startBtn.style.display = 'block';
+            startBtn.onclick = () => goToStep(3);
+        }
+    }
+
+    // 3. STEP 3: FINAL ASSESSMENT & QUIZ LOGIC
+    
+    // ANTI-CHEAT: Check if reading time is realistic
+    function checkCheating() {
+        if (!readingStartTime) return;
+        
+        const endTime = new Date();
+        const timeInSeconds = (endTime - readingStartTime) / 1000;
+        const minutesTaken = timeInSeconds / 60;
+        
+        // Calculate WPM based on time taken
+        const calculatedWpm = Math.round(currentStoryWordCount / minutesTaken);
+        
+        // If WPM is impossibly high (faster than 800 WPM), show cheat warning
+        if (calculatedWpm > MIN_READING_SPEED_WPM) {
+            showCheatPopup();
+            return;
+        }
+        
+        // Otherwise proceed to quiz
+        showQuiz();
+    }
+    
+    function showCheatPopup() {
+        document.getElementById('cheat-overlay').style.display = 'block';
+        document.getElementById('cheat-popup').style.display = 'block';
+    }
+    
+    function closeCheatPopup() {
+        document.getElementById('cheat-overlay').style.display = 'none';
+        document.getElementById('cheat-popup').style.display = 'none';
+        // Reset the reading so they have to start over
+        document.getElementById('reading-state').style.display = 'none';
+        document.getElementById('pre-read-state').style.display = 'block';
+        clearInterval(liveTimerInterval);
+        readingStartTime = null;
+    }
+
+    function startFinalAssessment() {
+        readingStartTime = new Date(); // Track when they started reading
+        startTime = new Date();
+        let secondsElapsed = 0;
+        const timerDisplay = document.getElementById('live-timer');
+        
+        clearInterval(liveTimerInterval);
+        liveTimerInterval = setInterval(() => {
+            secondsElapsed++;
+            timerDisplay.innerText = secondsElapsed + "s";
+        }, 1000);
+
+        document.getElementById('pre-read-state').style.display = 'none';
+        document.getElementById('reading-state').style.display = 'block';
+    }
+
+    function showQuiz() {
+    clearInterval(liveTimerInterval);
+    const endTime = new Date();
+    const timeInSeconds = (endTime - startTime) / 1000;
+    if (timeInSeconds < 1) return alert("Please read the story before finishing!");
+
+    const storyText = document.getElementById('assessment-text-box').innerText;
+    const wordCount = storyText.trim().split(/\\s+/).length;
+    finalWpm = Math.round((wordCount / timeInSeconds) * 60);
+
+    document.getElementById('reading-state').style.display = 'none';
+    document.getElementById('quiz-state').style.display = 'block';
+
+    if (currentStoryData && currentStoryData.questions) {
+        try {
+            const quizItems = typeof currentStoryData.questions === 'string' 
+                ? JSON.parse(currentStoryData.questions) 
+                : currentStoryData.questions;
+
+            const container = document.getElementById('quiz-container');
+            
+            container.innerHTML = quizItems.map((q, i) => {
+                // 1. Capture the correct answer (it's always the first one in your DB)
+                const correctAnswer = q.options[0]; 
+                
+                // 2. Shuffle the options array
+                const shuffledOptions = [...q.options].sort(() => Math.random() - 0.5);
+
+                // 3. Store the correct answer on the element so we can check it later
+                return `
+                    <div class="quiz-question" data-correct="${correctAnswer}" style="margin-bottom: 20px; padding: 15px; background: #f8fafc; border-radius: 10px; border-left: 5px solid var(--primary); text-align:left;">
+                        <p style="font-weight: bold; margin-bottom: 10px;">${i+1}. ${q.q}</p>
+                        ${shuffledOptions.map(opt => `
+                            <label style="display: block; margin: 8px 0; cursor: pointer; padding: 10px; background: white; border: 1px solid #e2e8f0; border-radius: 8px;">
+                                <input type="radio" name="q${i}" value="${opt}" style="margin-right: 10px;"> ${opt}
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+            }).join('');
+        } catch (e) { console.error(e); }
+    }
+}
+
+async function submitFinalResults() {
+    let correctCount = 0;
+    const questionBlocks = document.querySelectorAll('.quiz-question');
+    
+    questionBlocks.forEach((block, i) => {
+        const correctAnswer = block.getAttribute('data-correct');
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        
+        if (selected && selected.value === correctAnswer) {
+            correctCount++;
+        }
+    });
+
+    const accuracy = questionBlocks.length > 0 
+        ? Math.round((correctCount / questionBlocks.length) * 100) 
+        : 100;
+
+    const student = JSON.parse(sessionStorage.getItem('student'));
+    const resultData = {
+        email: student.email,
+        story_id_string: currentStoryData.id_string,
+        wpm: finalWpm,
+        accuracy: accuracy
+    };
+
+    try {
+        await window.api.saveResult(resultData);
+        alert(`Saved! Speed: ${finalWpm} WPM | Accuracy: ${accuracy}%`);
+        location.reload(); 
+    } catch (err) { alert("Error saving results."); }
+}
+    // 4. DATA LOADING
+    
+    // Common words to exclude from focus words
+    const commonWords = new Set([
+        'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
+        'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she', 'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there',
+        'their', 'what', 'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no',
+        'just', 'him', 'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other', 'than', 'then',
+        'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also', 'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well',
+        'way', 'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us', 'is', 'was', 'are', 'were', 'been', 'has',
+        'had', 'did', 'does', 'doing', 'done', 'am', 'is', 'are', 'was', 'were', 'be', 'being', 'been', 'have', 'has', 'had', 'do', 'does',
+        'did', 'will', 'would', 'shall', 'should', 'may', 'might', 'must', 'can', 'could', 'ought', 'need', 'dare', 'used', 'to', 'of', 'in',
+        'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under',
+        'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'each', 'few', 'more', 'most', 'other',
+        'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'and', 'but', 'if', 'or', 'because',
+        'until', 'while', 'although', 'though', 'unless', 'since', 'although', 'whereas', 'despite', 'however', 'therefore', 'thus', 'hence',
+        'moreover', 'furthermore', 'nevertheless', 'nonetheless', 'otherwise', 'instead', 'meanwhile', 'subsequently', 'eventually', 'finally',
+        'initially', 'originally', 'previously', 'formerly', 'lately', 'recently', 'currently', 'presently', 'nowadays', 'today', 'tomorrow',
+        'yesterday', 'soon', 'later', 'afterwards', 'beforehand', 'earlier', 'sooner', 'immediately', 'instantly', 'quickly', 'slowly', 'gradually',
+        'suddenly', 'unexpectedly', 'surprisingly', 'interestingly', 'fortunately', 'unfortunately', 'luckily', 'hopefully', 'probably', 'possibly',
+        'perhaps', 'maybe', 'certainly', 'definitely', 'absolutely', 'obviously', 'clearly', 'apparently', 'seemingly', 'presumably', 'allegedly',
+        'reportedly', 'supposedly', 'arguably', 'potentially', 'likely', 'unlikely', 'especially', 'particularly', 'specifically', 'mainly', 'mostly',
+        'largely', 'partly', 'partially', 'completely', 'totally', 'entirely', 'fully', 'quite', 'rather', 'pretty', 'fairly', 'relatively', 'comparatively',
+        'extremely', 'incredibly', 'remarkably', 'particularly', 'especially', 'significantly', 'substantially', 'considerably', 'greatly', 'highly',
+        'strongly', 'deeply', 'greatly', 'badly', 'seriously', 'severely', 'critically', 'crucially', 'vitally', 'essentially', 'basically', 'fundamentally',
+        'primarily', 'principally', 'chiefly', 'mainly', 'mostly', 'generally', 'usually', 'normally', 'typically', 'commonly', 'often', 'frequently',
+        'regularly', 'repeatedly', 'consistently', 'constantly', 'continuously', 'continually', 'persistently', 'permanently', 'temporarily', 'briefly',
+        'shortly', 'momentarily', 'instantly', 'immediately', 'directly', 'straight', 'right', 'exactly', 'precisely', 'accurately', 'correctly',
+        'properly', 'appropriately', 'suitably', 'fittingly', 'accordingly', 'consequently', 'subsequently', 'resultingly', 'hence', 'therefore',
+        'thus', 'accordingly', 'consequently', 'as', 'a', 'result', 'in', 'conclusion', 'to', 'sum', 'up', 'in', 'summary', 'overall', 'all',
+        'in', 'all', 'all', 'all', 'things', 'considered', 'taking', 'everything', 'into', 'account', 'on', 'the', 'whole', 'by', 'large',
+        'for', 'the', 'most', 'part', 'in', 'general', 'generally', 'speaking', 'broadly', 'speaking', 'roughly', 'speaking', 'strictly', 'speaking',
+        'frankly', 'speaking', 'honestly', 'speaking', 'personally', 'speaking', 'relatively', 'speaking', 'comparatively', 'speaking'
+    ]);
+    
+  function getRandomFocusWords(text, count = 6) {
+    // Split into words and clean
+    const allWords = text.toLowerCase()
+        .replace(/[^\w\s]/g, ' ')  // <-- CHANGE: ' ' instead of ''
+        .split(/\s+/)
+        .filter(word => {
+            // Must be at least 4 characters
+            if (word.length < 4) return false;
+            // Must not be a common word
+            if (commonWords.has(word)) return false;
+            // Must be alphabetic (no numbers)
+            if (!/^[a-z]+$/.test(word)) return false;
+            return true;
+        });
+    
+    // Remove duplicates while preserving case from original text
+    const uniqueWords = [...new Set(allWords)];
+    
+    // Shuffle array
+    for (let i = uniqueWords.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [uniqueWords[i], uniqueWords[j]] = [uniqueWords[j], uniqueWords[i]];
+    }
+    
+    // Return first 'count' words, capitalized
+    return uniqueWords.slice(0, count).map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+    );
+}
+
+  async function loadAssignmentContent() {
+    try {
+        const stories = await window.api.getStories();
+        const activeStory = stories.find(s => s.is_active === 1);
+        if (activeStory) {
+            currentStoryData = activeStory; 
+            
+            // Store word count for anti-cheat
+            currentStoryWordCount = activeStory.content.trim().split(/\s+/).length;
+            
+            // Use new random focus word selection instead of first 6 words
+            const focusWords = getRandomFocusWords(activeStory.content, 6);
+            
+            // Store for games
+            currentGameWords = focusWords;
+            
+            // FIX: Check if we got valid focus words, otherwise use defaults
+            const wordsToDisplay = (focusWords && focusWords.length > 0) ? focusWords : ['Reading', 'Learning', 'Practice', 'Study', 'Focus', 'Words'];
+            
+            const wordListContainer = document.getElementById('focus-words-list');
+            wordListContainer.innerHTML = '';
+            
+            wordsToDisplay.forEach(w => {
+                const span = document.createElement('span');
+                span.style.cssText = 'background:#f1f5f9; padding:10px 20px; border-radius:8px; font-weight:bold; color:var(--primary); font-size: 1.1rem; font-family: var(--font-family); margin: 5px; display: inline-block;';
+                span.textContent = w;
+                wordListContainer.appendChild(span);
+            });
+            
+            document.getElementById('hidden-story-text').innerText = activeStory.content;
+            document.getElementById('assessment-text-box').innerText = activeStory.content;
+        }
+    } catch (err) { 
+        console.error("Error loading assignment:", err);
+        // Set default words if error
+        document.getElementById('focus-words-list').innerHTML = 
+            ['Reading', 'Learning', 'Practice', 'Study', 'Focus', 'Words']
+            .map(w => `<span style="background:#f1f5f9; padding:10px 20px; border-radius:8px; font-weight:bold; color:var(--primary); font-size: 1.1rem; font-family: var(--font-family); margin: 5px; display: inline-block;">${w}</span>`)
+            .join('');
+    }
+}
+
+    // 5. PAGE INITIALIZATION
+    window.onload = async () => {
+        const student = JSON.parse(sessionStorage.getItem('student'));
+        if (!student) return window.api.switchPage('index.html');
+
+        document.getElementById('greeting').textContent = `Hello, ${student.name}!`;
+        document.getElementById('student-info').textContent = `Grade ${student.grade} | ${student.email}`;
+        document.getElementById('user-initials').textContent = student.name[0].toUpperCase();
+
+        // Load accessibility settings first
+        loadAccessibilitySettings();
+
+        try {
+            const settings = await window.api.getSettings();
+            if (settings) {
+                if (settings.schoolName) document.getElementById('school-name-text').textContent = settings.schoolName;
+                if (settings.logo) {
+                    const logo = document.getElementById('sidebar-logo-img');
+                    logo.src = settings.logo.replace(/['\"]+/g, '');
+                    logo.style.display = 'inline-block';
+                    document.getElementById('fallback-icon').style.display = 'none';
+                }
+                if (settings.primary) document.documentElement.style.setProperty('--primary', settings.primary);
+                if (settings.dark) document.documentElement.style.setProperty('--dark', settings.dark);
+                if (settings.accent) document.documentElement.style.setProperty('--accent', settings.accent);
+            }
+        } catch (e) { console.error(e); }
+
+        try {
+            const results = await window.api.getAllResults();
+            const myResults = results.filter(r => r.email === student.email);
+            if (myResults.length > 0) {
+                const latest = myResults[myResults.length - 1];
+                document.getElementById('last-wpm').textContent = `${latest.wpm} WPM`;
+                document.getElementById('last-acc').textContent = `${latest.accuracy}%`;
+            }
+        } catch (e) { console.error(e); }
+    };
+	
+	let myChart = null; // Global to keep track of the chart instance
+
+async function loadPerformanceData() {
+    const student = JSON.parse(sessionStorage.getItem('student'));
+    if (!student) return;
+
+    try {
+        const allResults = await window.api.getAllResults();
+        
+        // 1. Filter for THIS student and sort by timestamp (Oldest to Newest)
+        const myData = allResults
+            .filter(r => r.email === student.email && r.wpm !== null)
+            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        if (myData.length === 0) {
+            document.getElementById('stat-avg-wpm').innerText = "0";
+            return;
+        }
+
+        // 2. Calculate Stats
+        const speeds = myData.map(r => r.wpm);
+        const accuracies = myData.map(r => r.accuracy);
+        
+        const avgSpeed = Math.round(speeds.reduce((a, b) => a + b, 0) / speeds.length);
+        const maxSpeed = Math.max(...speeds);
+        const avgAcc = Math.round(accuracies.reduce((a, b) => a + b, 0) / accuracies.length);
+
+        document.getElementById('stat-avg-wpm').innerText = avgSpeed;
+        document.getElementById('stat-best-wpm').innerText = maxSpeed;
+        document.getElementById('stat-avg-acc').innerText = avgAcc + "%";
+
+        // 3. Setup Chart Data
+        const labels = myData.map(r => new Date(r.timestamp).toLocaleDateString());
+        
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        
+        // If a chart already exists, destroy it so we can draw a fresh one
+        if (myChart) { myChart.destroy(); }
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Words Per Minute',
+                    data: speeds,
+                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#004a99',
+                    backgroundColor: 'rgba(0, 74, 153, 0.1)',
+                    fill: true,
+                    tension: 0.3, // Curve the lines
+                    pointRadius: 5,
+                    pointBackgroundColor: '#fff',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'WPM' } }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+    } catch (err) {
+        console.error("Performance Load Error:", err);
+    }
+}
+
+// --- GAME FUNCTIONS ---
+
+function switchGame(game) {
+    document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.game-tab').forEach(t => {
+        if (t.textContent.toLowerCase().includes(game)) t.classList.add('active');
+    });
+    
+    document.getElementById('wordsearch-game').style.display = 'none';
+    document.getElementById('memory-game').style.display = 'none';
+    document.getElementById('spelling-game').style.display = 'none';
+    
+    if (game === 'wordsearch') {
+        document.getElementById('wordsearch-game').style.display = 'block';
+        initWordSearch();
+    } else if (game === 'memory') {
+        document.getElementById('memory-game').style.display = 'block';
+        initMemoryGame();
+    } else if (game === 'spelling') {
+        document.getElementById('spelling-game').style.display = 'block';
+        initSpellingGame();
+    }
+}
+
+// WORD SEARCH GAME
+function initWordSearch() {
+    const words = currentGameWords.length > 0 ? currentGameWords : ['READING', 'LEARNING', 'STUDENT', 'SCHOOL', 'BOOKS'];
+    const gridSize = 10;
+    wordSearchGrid = Array(gridSize).fill(null).map(() => Array(gridSize).fill(''));
+    foundWords = [];
+    selectedCells = [];
+    
+    // Place words
+    words.forEach(word => {
+        const upperWord = word.toUpperCase();
+        let placed = false;
+        let attempts = 0;
+        
+        while (!placed && attempts < 100) {
+            const direction = Math.floor(Math.random() * 3); // 0: horizontal, 1: vertical, 2: diagonal
+            const row = Math.floor(Math.random() * gridSize);
+            const col = Math.floor(Math.random() * gridSize);
+            
+            if (canPlaceWord(upperWord, row, col, direction, gridSize)) {
+                placeWord(upperWord, row, col, direction);
+                placed = true;
+            }
+            attempts++;
+        }
+    });
+    
+    // Fill empty cells
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            if (wordSearchGrid[i][j] === '') {
+                wordSearchGrid[i][j] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            }
+        }
+    }
+    
+    // Render grid
+    const gridEl = document.getElementById('wordsearch-grid');
+    gridEl.innerHTML = '';
+    gridEl.style.gridTemplateColumns = `repeat(${gridSize}, 40px)`;
+    
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            const cell = document.createElement('div');
+            cell.className = 'wordsearch-cell';
+            cell.textContent = wordSearchGrid[i][j];
+            cell.dataset.row = i;
+            cell.dataset.col = j;
+            cell.onclick = () => selectCell(i, j, cell);
+            gridEl.appendChild(cell);
+        }
+    }
+    
+    // Render word list
+    const listEl = document.getElementById('word-list');
+    listEl.innerHTML = '';
+    words.forEach(word => {
+        const item = document.createElement('div');
+        item.className = 'word-item';
+        item.textContent = word;
+        item.id = `word-${word.toUpperCase()}`;
+        listEl.appendChild(item);
+    });
+    
+    document.getElementById('ws-score').textContent = '0';
+    document.getElementById('ws-total').textContent = words.length;
+}
+
+function canPlaceWord(word, row, col, direction, size) {
+    if (direction === 0 && col + word.length > size) return false;
+    if (direction === 1 && row + word.length > size) return false;
+    if (direction === 2 && (row + word.length > size || col + word.length > size)) return false;
+    
+    for (let i = 0; i < word.length; i++) {
+        let r = row, c = col;
+        if (direction === 0) c += i;
+        else if (direction === 1) r += i;
+        else { r += i; c += i; }
+        
+        if (wordSearchGrid[r][c] !== '' && wordSearchGrid[r][c] !== word[i]) return false;
+    }
+    return true;
+}
+
+function placeWord(word, row, col, direction) {
+    for (let i = 0; i < word.length; i++) {
+        let r = row, c = col;
+        if (direction === 0) c += i;
+        else if (direction === 1) r += i;
+        else { r += i; c += i; }
+        wordSearchGrid[r][c] = word[i];
+    }
+}
+
+function selectCell(row, col, cell) {
+    if (cell.classList.contains('found')) return;
+    
+    if (cell.classList.contains('selected')) {
+        cell.classList.remove('selected');
+        selectedCells = selectedCells.filter(c => c !== cell);
+    } else {
+        cell.classList.add('selected');
+        selectedCells.push(cell);
+    }
+    
+    checkWordFound();
+}
+
+function checkWordFound() {
+    const selectedWord = selectedCells.map(c => c.textContent).join('');
+    const reverseWord = selectedCells.map(c => c.textContent).reverse().join('');
+    
+    const words = currentGameWords.length > 0 ? currentGameWords : ['READING', 'LEARNING', 'STUDENT', 'SCHOOL', 'BOOKS'];
+    
+    words.forEach(word => {
+        const upperWord = word.toUpperCase();
+        if ((selectedWord === upperWord || reverseWord === upperWord) && !foundWords.includes(upperWord)) {
+            foundWords.push(upperWord);
+            selectedCells.forEach(c => {
+                c.classList.remove('selected');
+                c.classList.add('found');
+            });
+            selectedCells = [];
+            
+            document.getElementById(`word-${upperWord}`).classList.add('found');
+            document.getElementById('ws-score').textContent = foundWords.length;
+            
+            if (foundWords.length === words.length) {
+                setTimeout(() => alert('Congratulations! You found all words!'), 100);
+            }
+        }
+    });
+}
+
+// MEMORY GAME
+function initMemoryGame() {
+    const words = currentGameWords.length > 0 ? currentGameWords.slice(0, 4) : ['READ', 'BOOK', 'LEARN', 'STUDY'];
+    const cards = [...words, ...words]; // Duplicate for pairs
+    cards.sort(() => Math.random() - 0.5);
+    
+    memoryCards = cards;
+    memoryFlipped = [];
+    memoryMatches = 0;
+    
+    const grid = document.getElementById('memory-grid');
+    grid.innerHTML = '';
+    
+    cards.forEach((word, index) => {
+        const card = document.createElement('div');
+        card.className = 'memory-card';
+        card.dataset.index = index;
+        card.dataset.word = word;
+        card.textContent = '?';
+        card.onclick = () => flipCard(card);
+        grid.appendChild(card);
+    });
+    
+    document.getElementById('mem-score').textContent = '0';
+    document.getElementById('mem-total').textContent = words.length;
+}
+
+function flipCard(card) {
+    if (card.classList.contains('flipped') || card.classList.contains('matched') || memoryFlipped.length >= 2) return;
+    
+    card.classList.add('flipped');
+    card.textContent = card.dataset.word;
+    memoryFlipped.push(card);
+    
+    if (memoryFlipped.length === 2) {
+        setTimeout(checkMatch, 800);
+    }
+}
+
+function checkMatch() {
+    const [card1, card2] = memoryFlipped;
+    
+    if (card1.dataset.word === card2.dataset.word) {
+        card1.classList.add('matched');
+        card2.classList.add('matched');
+        memoryMatches++;
+        document.getElementById('mem-score').textContent = memoryMatches;
+        
+        if (memoryMatches === memoryCards.length / 2) {
+            setTimeout(() => alert('Great job! You matched all pairs!'), 100);
+        }
+    } else {
+        card1.classList.remove('flipped');
+        card2.classList.remove('flipped');
+        card1.textContent = '?';
+        card2.textContent = '?';
+    }
+    
+    memoryFlipped = [];
+}
+
+// SPELLING GAME
+function initSpellingGame() {
+    spellingWords = currentGameWords.length > 0 ? currentGameWords : ['READING', 'LEARNING', 'STUDENT', 'SCHOOL'];
+    currentSpellIndex = 0;
+    spellScore = 0;
+    
+    document.getElementById('spell-total').textContent = spellingWords.length;
+    loadSpellingWord();
+}
+
+function loadSpellingWord() {
+    if (currentSpellIndex >= spellingWords.length) {
+        alert(`Game Over! Your score: ${spellScore}/${spellingWords.length * 10}`);
+        initSpellingGame();
+        return;
+    }
+    
+    currentSpellWord = spellingWords[currentSpellIndex].toUpperCase();
+    spellAttempts = new Array(currentSpellWord.length).fill('');
+    
+    document.getElementById('spell-current').textContent = currentSpellIndex + 1;
+    document.getElementById('spell-score').textContent = spellScore;
+    
+    // Show word briefly then hide
+    const display = document.getElementById('spelling-display');
+    display.textContent = currentSpellWord;
+    
+    setTimeout(() => {
+        display.textContent = '_ '.repeat(currentSpellWord.length);
+        renderSpellingInputs();
+        renderKeyboard();
+    }, 2000);
+}
+
+function renderSpellingInputs() {
+    const container = document.getElementById('spelling-inputs');
+    container.innerHTML = '';
+    
+    for (let i = 0; i < currentSpellWord.length; i++) {
+        const box = document.createElement('div');
+        box.className = 'spelling-letter';
+        box.textContent = spellAttempts[i] || '';
+        box.id = `spell-box-${i}`;
+        container.appendChild(box);
+    }
+}
+
+function renderKeyboard() {
+    const keyboard = document.getElementById('spelling-keyboard');
+    keyboard.innerHTML = '';
+    
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').forEach(letter => {
+        const btn = document.createElement('button');
+        btn.className = 'key-btn';
+        btn.textContent = letter;
+        btn.onclick = () => handleSpellKey(letter);
+        keyboard.appendChild(btn);
+    });
+    
+    // Add backspace
+    const backBtn = document.createElement('button');
+    backBtn.className = 'key-btn';
+    backBtn.textContent = '⌫';
+    backBtn.style.background = '#fee2e2';
+    backBtn.onclick = () => handleSpellBackspace();
+    keyboard.appendChild(backBtn);
+    
+    // Add submit
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'key-btn';
+    submitBtn.textContent = '✓ Check';
+    submitBtn.style.background = '#dcfce7';
+    submitBtn.onclick = () => checkSpelling();
+    keyboard.appendChild(submitBtn);
+}
+
+function handleSpellKey(letter) {
+    const emptyIndex = spellAttempts.findIndex(a => a === '');
+    if (emptyIndex !== -1) {
+        spellAttempts[emptyIndex] = letter;
+        document.getElementById(`spell-box-${emptyIndex}`).textContent = letter;
+    }
+}
+
+function handleSpellBackspace() {
+    const filledIndex = spellAttempts.map((a, i) => a !== '' ? i : -1).filter(i => i !== -1).pop();
+    if (filledIndex !== undefined) {
+        spellAttempts[filledIndex] = '';
+        document.getElementById(`spell-box-${filledIndex}`).textContent = '';
+    }
+}
+
+function checkSpelling() {
+    const attempt = spellAttempts.join('');
+    const boxes = document.querySelectorAll('.spelling-letter');
+    
+    if (attempt === currentSpellWord) {
+        boxes.forEach(b => b.classList.add('correct'));
+        spellScore += 10;
+        setTimeout(() => {
+            currentSpellIndex++;
+            loadSpellingWord();
+        }, 1000);
+    } else {
+        boxes.forEach((b, i) => {
+            if (spellAttempts[i] === currentSpellWord[i]) {
+                b.classList.add('correct');
+            } else {
+                b.classList.add('wrong');
+            }
+        });
+        setTimeout(() => {
+            boxes.forEach(b => b.classList.remove('wrong', 'correct'));
+            spellAttempts = new Array(currentSpellWord.length).fill('');
+            renderSpellingInputs();
+        }, 1500);
+    }
+}
+    </script>
+</body>
+</html>
