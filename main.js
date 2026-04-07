@@ -3,6 +3,7 @@ const path = require('path');
 const Database = require('better-sqlite3');
 const fs = require('fs'); 
 const https = require('https');
+const http = require('http'); // ADD THIS for http redirects
 const { exec } = require('child_process');
 const os = require('os');
 
@@ -317,9 +318,36 @@ ipcMain.handle('get-student-results', async (event, email) => {
 // ==================== UPDATE CHECKER SYSTEM ====================
 
 // GitHub configuration - CHANGE THESE TO YOUR REPO
-const GITHUB_OWNER = 'YOUR_GITHUB_USERNAME'; // e.g., 'johnDoe'
-const GITHUB_REPO = 'YOUR_REPO_NAME'; // e.g., 'literacy-portal'
+const GITHUB_OWNER = 'ConradBouwer'; // e.g., 'johnDoe'
+const GITHUB_REPO = 'ReaderPro'; // e.g., 'literacy-portal'
 const CURRENT_VERSION = app.getVersion(); // Gets version from package.json
+
+// Helper function to follow redirects
+function downloadWithRedirects(url, callback, progressCallback) {
+  const client = url.startsWith('https:') ? https : http;
+  
+  client.get(url, {
+    headers: {
+      'User-Agent': 'Literacy-Portal-Updater'
+    }
+  }, (response) => {
+    // Handle redirects (301, 302, 307, 308)
+    if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+      console.log(`Following redirect to: ${response.headers.location}`);
+      downloadWithRedirects(response.headers.location, callback, progressCallback);
+      return;
+    }
+    
+    if (response.statusCode !== 200) {
+      callback(new Error(`Download failed with status ${response.statusCode}`));
+      return;
+    }
+
+    callback(null, response);
+  }).on('error', (err) => {
+    callback(err);
+  });
+}
 
 // Check for updates from GitHub Releases
 ipcMain.handle('check-for-updates', async () => {
@@ -450,7 +478,9 @@ ipcMain.handle('check-for-updates', async () => {
 });
 
 // Download and install update
-ipcMain.handle('download-and-install-update', async (event, { acceptedTerms }) => {
+ipcMain.handle('download-and-install-update', async (event, data = {}) => {
+  const { acceptedTerms } = data;
+  
   if (!acceptedTerms) {
     return { success: false, message: 'You must accept the terms to proceed.' };
   }
@@ -468,17 +498,14 @@ ipcMain.handle('download-and-install-update', async (event, { acceptedTerms }) =
 
     const downloadPath = path.join(tempDir, updateInfo.assetName || 'update.exe');
 
-    // Download the file
+    // Download the file with redirect support
     await new Promise((resolve, reject) => {
       const file = fs.createWriteStream(downloadPath);
       
-      https.get(updateInfo.downloadUrl, {
-        headers: {
-          'User-Agent': 'Literacy-Portal-Updater'
-        }
-      }, (response) => {
-        if (response.statusCode !== 200) {
-          reject(new Error(`Download failed with status ${response.statusCode}`));
+      downloadWithRedirects(updateInfo.downloadUrl, (err, response) => {
+        if (err) {
+          fs.unlink(downloadPath, () => {});
+          reject(err);
           return;
         }
 
@@ -504,9 +531,6 @@ ipcMain.handle('download-and-install-update', async (event, { acceptedTerms }) =
           fs.unlink(downloadPath, () => {});
           reject(err);
         });
-      }).on('error', (err) => {
-        fs.unlink(downloadPath, () => {});
-        reject(err);
       });
     });
 
