@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <!-- LOCAL SCRIPTS - OFFLINE ONLY -->
-    <script src="./node_modules/pdfjs-dist/build/pdf.min.js"></script>
-    <script src="./node_modules/tesseract.js/dist/tesseract.min.js"></script>
-    
+    <meta charset="UTF-8">
+    <title>Teacher Portal</title>
     <style>
         /* LOCAL FONT DEFINITIONS - OFFLINE ONLY */
         @font-face {
@@ -89,6 +87,7 @@
             max-height: 60px;
             margin-bottom: 12px;
             object-fit: contain;
+            display: none;
         }
 
         .nav-item { padding: 12px 25px; transition: 0.2s; display: flex; align-items: center; gap: 10px; color: #94a3b8; cursor: pointer; }
@@ -339,7 +338,7 @@
 
     <div class="sidebar">
         <div class="sidebar-header">
-            <img id="sidebar-logo-img" src="" style="display: none;">
+            <img id="sidebar-logo-img" src="" alt="School Logo">
             <div id="display-school-name" style="font-weight: bold; font-size: 18px; text-transform: uppercase;">NAMIES HIGH</div>
             <div style="font-size: 11px; opacity: 0.6;">Admin Portal</div>
         </div>
@@ -814,8 +813,6 @@
         let allStories = [];
 
         let currentLogoBase64 = "";
-        pdfjsLib.GlobalWorkerOptions.workerSrc = './pdfjs/pdf.worker.min.js';
-        document.getElementById('current-date').innerText = new Date().toLocaleDateString();
         let currentEditEmail = null;
         let questionData = [];
 
@@ -905,7 +902,9 @@
 
                     const logoImg = document.getElementById('sidebar-logo-img');
                     if (logo && logo.length > 10) {
-                        logoImg.src = logo;
+                        // Clean the logo string of any quotes
+                        const cleanLogo = logo.replace(/['"]+/g, '');
+                        logoImg.src = cleanLogo;
                         logoImg.style.display = 'block';
                     }
                 }
@@ -916,7 +915,9 @@
 
         async function saveSettings() {
             const sName = document.getElementById('set-school-name').value;
-            const sLogo = document.getElementById('sidebar-logo-img').src;
+            // Use currentLogoBase64 if a new logo was uploaded, otherwise get from current img src
+            const logoElement = document.getElementById('sidebar-logo-img');
+            const sLogo = currentLogoBase64 || (logoElement.style.display !== 'none' ? logoElement.src : '');
             const pColor = document.getElementById('set-color-primary').value;
             const dColor = document.getElementById('set-color-dark').value;
             const aColor = document.getElementById('set-color-accent').value;
@@ -969,43 +970,24 @@
             if (id === 'settings') loadVersionInfo();
         }
 
-        // --- OFFLINE PDF SCANNING WITH LOCAL TESSERACT ---
         async function handlePdfScan(input) {
             const file = input.files[0];
             if (!file) return;
+            
             const textArea = document.getElementById('scon');
             textArea.value = "⚡ Scanning PDF... Please wait.";
             textArea.readOnly = true;
+            
             try {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                let fullText = "";
+                // Use main process to handle PDF/OCR with proper paths
+                const result = await window.api.scanPdf(file.path);
                 
-                // Create Tesseract worker with LOCAL paths only
-                const { createWorker } = Tesseract;
-                const worker = await createWorker('eng+afr', 1, {
-                    workerPath: './tesseract/worker.min.js',
-                    langPath: './tesseract/traineddata',
-                    corePath: './tesseract/tesseract-core.wasm.js',
-                    logger: m => console.log(m)
-                });
-                
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const viewport = page.getViewport({ scale: 2.0 });
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-                    await page.render({ canvasContext: context, viewport: viewport }).promise;
-                    
-                    // Use local worker for OCR
-                    const { data: { text } } = await worker.recognize(canvas);
-                    fullText += text + "\n";
+                if (result.success) {
+                    textArea.value = result.text;
+                } else {
+                    throw new Error(result.message || 'OCR failed');
                 }
                 
-                await worker.terminate();
-                textArea.value = fullText.trim();
             } catch (err) {
                 console.error(err);
                 alert("Error scanning PDF: " + err.message);
@@ -1030,28 +1012,39 @@
         }
 
         async function loadRoster() {
-            const students = await window.api.getAllStudents();
-            const results = await window.api.getAllResults();
-            const tbody = document.getElementById('rt');
-            tbody.innerHTML = '';
-            students.forEach(s => {
-                const hasTested = results.some(r => r.email === s.email);
-                const statusDot = hasTested ? '<span class="dot dot-green"></span>' : '<span class="dot dot-grey"></span>';
+            try {
+                const students = await window.api.getAllStudents();
+                const results = await window.api.getAllResults();
+                const tbody = document.getElementById('rt');
+                tbody.innerHTML = '';
                 
-                const row = `<tr>
-                    <td>${statusDot}</td>
-                    <td>${s.name}</td>
-                    <td>${s.email}</td>
-                    <td>${s.grade}</td>
-                    <td>${s.class_id}</td>
-                    <td>${s.language}</td>
-                    <td class="no-print">
-                        <button class="btn btn-accent btn-small" onclick="editS('${s.email}')">Edit</button>
-                        <button class="btn btn-danger btn-small" onclick="delS('${s.email}')">Delete</button>
-                    </td>
-                </tr>`;
-                tbody.innerHTML += row;
-            });
+                if (!students || students.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">No students found. Add students using the form above.</td></tr>';
+                    return;
+                }
+                
+                students.forEach(s => {
+                    const hasTested = results.some(r => r.email === s.email);
+                    const statusDot = hasTested ? '<span class="dot dot-green"></span>' : '<span class="dot dot-grey"></span>';
+                    
+                    const row = `<tr>
+                        <td>${statusDot}</td>
+                        <td>${s.name || 'N/A'}</td>
+                        <td>${s.email || 'N/A'}</td>
+                        <td>${s.grade || 'N/A'}</td>
+                        <td>${s.class_id || 'N/A'}</td>
+                        <td>${s.language || 'English'}</td>
+                        <td class="no-print">
+                            <button class="btn btn-accent btn-small" onclick="editS('${s.email}')">Edit</button>
+                            <button class="btn btn-danger btn-small" onclick="delS('${s.email}')">Delete</button>
+                        </td>
+                    </tr>`;
+                    tbody.innerHTML += row;
+                });
+            } catch (err) {
+                console.error("Failed to load roster:", err);
+                document.getElementById('rt').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #dc2626;">Error loading students. Check console.</td></tr>';
+            }
         }
 
         async function addS() {
@@ -1444,7 +1437,7 @@
                 }
                 if (settings.logo) {
                     const logoImg = document.getElementById('report-logo');
-                    logoImg.src = settings.logo.replace(/['\"]+/g, '');
+                    logoImg.src = settings.logo.replace(/['"]+/g, '');
                     logoImg.style.display = 'block';
                 }
             }
@@ -1745,6 +1738,7 @@
         }
 
         window.onload = async () => {
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString();
             await applyBranding();
             allStudents = await window.api.getAllStudents();
             loadRoster();
