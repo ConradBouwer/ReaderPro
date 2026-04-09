@@ -4,10 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learner Portal</title>
-	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=OpenDyslexic&family=Arial&family=Verdana&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* LOCAL FONT DEFINITIONS - OFFLINE ONLY */
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('./fonts/opendyslexic/opendyslexic-regular.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('./fonts/opendyslexic/opendyslexic-bold.woff2') format('woff2');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('./fonts/opendyslexic/opendyslexic-italic.woff2') format('woff2');
+            font-weight: normal;
+            font-style: italic;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'Comic Neue';
+            src: url('./fonts/comic-neue/comic-neue-v8-latin-regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'Comic Neue';
+            src: url('./fonts/comic-neue/comic-neue-v8-latin-700.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        /* EMOJI ICON REPLACEMENTS (No Font Awesome needed) */
+        .icon-home::before { content: "🏠"; margin-right: 8px; }
+        .icon-book::before { content: "📖"; margin-right: 8px; }
+        .icon-chart::before { content: "📊"; margin-right: 8px; }
+        .icon-game::before { content: "🎮"; margin-right: 8px; }
+        .icon-cog::before { content: "⚙️"; margin-right: 8px; }
+        .icon-signout::before { content: "🚪"; margin-right: 8px; }
+        .icon-play::before { content: "▶️"; margin-right: 8px; }
+        .icon-question::before { content: "❓"; margin-right: 8px; }
+        .icon-pen::before { content: "✏️"; margin-right: 8px; }
+        .icon-graduation::before { content: "🎓"; margin-right: 8px; }
+        .icon-user::before { content: "👤"; margin-right: 8px; }
+        .icon-check::before { content: "✅"; margin-right: 8px; }
+        .icon-times::before { content: "❌"; margin-right: 8px; }
+        .icon-arrow-right::before { content: "➡️"; margin-right: 8px; }
+        .icon-heart::before { content: "❤️"; margin-right: 8px; }
+        .icon-info::before { content: "ℹ️"; margin-right: 8px; }
+        .icon-warning::before { content: "⚠️"; margin-right: 8px; }
+        .icon-exclamation::before { content: "❗"; margin-right: 8px; }
+        .icon-heart-pulse::before { content: "💓"; margin-right: 8px; }
+
         :root {
             /* These will be overwritten by your Teacher Settings */
             --primary: #004a99;
@@ -31,11 +91,11 @@
             background: var(--dark);
             color: white;
             display: flex; flex-direction: column; padding: 0;
-			position: fixed;
-			height: 100vh;
-			left: 0;
-			top: 0;
-			z-index: 100;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 100;
             -webkit-app-region: drag;
         }
 
@@ -440,32 +500,32 @@
     <div class="sidebar" style="display: flex; flex-direction: column; height: 100vh; background: var(--dark); color: white; width: var(--sidebar-w); position: fixed; left: 0; top: 0;">
     
     <div style="padding: 25px; text-align: center;">
-        <div id="fallback-icon" style="font-size: 50px; margin-bottom: 10px;"><i class="fa fa-graduation-cap"></i></div>
+        <div id="fallback-icon" style="font-size: 50px; margin-bottom: 10px;"><span class="icon-graduation"></span></div>
         <img id="sidebar-logo-img" style="display:none; width: 80px; margin: 0 auto 10px auto; border-radius: 10px;">
         <div id="school-name-text" style="font-weight: 800; font-size: 1.1rem; letter-spacing: 1px;">LITERACY PRO</div>
     </div>
 
     <div style="flex: 1; padding: 10px;">
         <div id="nav-home" class="nav-item active" onclick="showSection('home-section')">
-            <i class="fa fa-home"></i> Dashboard
+            <span class="icon-home"></span> Dashboard
         </div>
         <div id="nav-assignment" class="nav-item" onclick="showSection('assignment-section')">
-            <i class="fa fa-book-open"></i> My Assignment
+            <span class="icon-book"></span> My Assignment
         </div>
         <div id="nav-performance" class="nav-item" onclick="showSection('performance-section')">
-            <i class="fa fa-chart-line"></i> Performance
+            <span class="icon-chart"></span> Performance
         </div>
         <div id="nav-games" class="nav-item" onclick="showSection('games-section')">
-            <i class="fa fa-gamepad"></i> Word Games
+            <span class="icon-game"></span> Word Games
         </div>
     </div>
 
     <div id="sidebar-footer" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;">
         <div id="nav-settings" class="nav-item" onclick="showSection('settings-section')">
-            <i class="fa fa-cog"></i> Settings
+            <span class="icon-cog"></span> Settings
         </div>
         <div class="nav-item" onclick="window.api.switchPage('index.html')" style="color: #fda4af; margin-top: 5px;">
-            <i class="fa fa-sign-out-alt"></i> Logout
+            <span class="icon-signout"></span> Logout
         </div>
     </div>
 </div>
@@ -505,7 +565,7 @@
             <p>Practice these words out loud.</p>
             <div id="focus-words-list" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin: 20px 0;">
                 </div>
-            <button class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:15px; font-weight:bold; cursor:pointer;" onclick="goToStep(2)">Next Step →</button>
+            <button class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:15px; font-weight:bold; cursor:pointer;" onclick="goToStep(2)">Next Step <span class="icon-arrow-right" style="margin-left: 5px;"></span></button>
         </div>
 
         <div id="step2-card" class="card" style="display:none; text-align: center; max-width: 600px; margin: 0 auto;">
@@ -535,7 +595,7 @@
             Read as fast and accurately as you can!
         </p>
         <button id="start-reading-btn" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:20px; font-weight:bold; cursor:pointer; font-size: 1.2rem;" onclick="startFinalAssessment()">
-            <i class="fa fa-play"></i> START READING NOW
+            <span class="icon-play"></span> START READING NOW
         </button>
     </div>
 
@@ -548,12 +608,12 @@
         <div id="assessment-text-box" style="text-align:left; padding:25px; background:#fff; border:2px solid var(--primary); border-radius:15px; margin-bottom:20px; font-size: 1.4rem; line-height: 1.8; color: #1e293b;"></div>
         
         <button id="finish-reading-btn" class="card" style="background: var(--accent); color:white; border:none; width:100%; padding:20px; font-weight:bold; border-radius:15px; cursor:pointer;" onclick="checkCheating()">
-            <i class="fa fa-question-circle"></i> I AM FINISHED - TAKE QUIZ
+            <span class="icon-question"></span> I AM FINISHED - TAKE QUIZ
         </button>
     </div>
 
     <div id="quiz-state" style="display: none; text-align: left;">
-        <h3 style="color: var(--primary); text-align: center;"><i class="fa fa-pen"></i> Quick Check</h3>
+        <h3 style="color: var(--primary); text-align: center;"><span class="icon-pen"></span> Quick Check</h3>
         <p style="text-align: center;">Answer these questions about the story:</p>
         <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
         <div id="quiz-container" style="margin-top: 20px;">
@@ -594,7 +654,7 @@
 <!-- GAMES SECTION -->
 <div id="games-section" class="content-section" style="display:none;">
     <div class="game-container">
-        <h1 style="color: var(--dark); margin-bottom: 20px;"><i class="fa fa-gamepad"></i> Word Games</h1>
+        <h1 style="color: var(--dark); margin-bottom: 20px;"><span class="icon-game"></span> Word Games</h1>
         <p style="color: #64748b; margin-bottom: 20px;">Practice your focus words with fun games!</p>
         
         <div class="game-tabs">
@@ -673,7 +733,7 @@
         <!-- Epilepsy Mode -->
         <div class="setting-row" style="background: #fef2f2; border-radius: 8px; margin: 0 -25px; padding: 20px 25px;">
             <div>
-                <div class="setting-label" style="color: #dc2626;"><i class="fa fa-heart-pulse"></i> Photosensitivity Mode</div>
+                <div class="setting-label" style="color: #dc2626;"><span class="icon-heart-pulse"></span> Photosensitivity Mode</div>
                 <div class="setting-description">Disable speed test flashing animations. Recommended for users with epilepsy or light sensitivity.</div>
             </div>
             <div class="toggle-switch" id="epilepsy-toggle" onclick="toggleEpilepsyMode()"></div>
@@ -699,7 +759,7 @@
 
         <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
             <div style="display: flex; align-items: center; gap: 15px; background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary);">
-                <i class="fa fa-info-circle" style="color: var(--primary); font-size: 20px;"></i>
+                <span class="icon-info" style="color: var(--primary); font-size: 20px;"></span>
                 <div>
                     <div style="font-weight: 600; color: var(--dark);">Your settings are saved automatically</div>
                     <div style="font-size: 13px; color: #64748b;">They will apply every time you log in.</div>
@@ -714,8 +774,8 @@
 <!-- CHEAT POPUP -->
 <div id="cheat-overlay" class="overlay" style="display: none;"></div>
 <div id="cheat-popup" class="cheat-popup" style="display: none;">
-    <i class="fa fa-exclamation-triangle" style="font-size: 48px; color: #dc2626; margin-bottom: 15px;"></i>
-    <h2>Don't Cheat! 🚫</h2>
+    <span class="icon-warning" style="font-size: 48px; color: #dc2626; margin-bottom: 15px;"></span>
+    <h2>Don't Cheat! <span class="icon-times"></span></h2>
     <p>You finished reading way too fast! It would be impossible to read that many words in such a short time.</p>
     <p style="font-size: 0.9rem; color: #64748b; margin-top: 10px;">Take your time and read the story properly.</p>
     <button onclick="closeCheatPopup()">I Understand</button>
@@ -1000,7 +1060,7 @@ function startSpeedDrill() {
         document.getElementById('speed-flash-display').innerHTML = "<h2>Drill Complete!</h2><p>Ready for the full assessment?</p>";
         const startBtn = document.getElementById('start-speed-btn');
         if(startBtn) {
-            startBtn.innerText = "Go to Step 3 →";
+            startBtn.innerText = "Go to Step 3 <span class='icon-arrow-right'></span>";
             startBtn.style.display = 'block';
             startBtn.onclick = () => goToStep(3);
         }
