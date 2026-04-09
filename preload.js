@@ -1,5 +1,15 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+contextBridge.exposeInMainWorld('electronPath', {
+    join: (...args) => args.join('/').replace(/\/+/g, '/'),
+    resolve: (...args) => args.join('/').replace(/\/+/g, '/'),
+    dirname: (p) => p.substring(0, p.lastIndexOf('/') + 1) || './',
+    basename: (p, ext) => {
+        const base = p.substring(p.lastIndexOf('/') + 1);
+        return ext ? base.replace(ext, '') : base;
+    }
+});
+
 contextBridge.exposeInMainWorld('api', {
   // --- Window Controls ---
   minimize: () => ipcRenderer.send('minimize-app'),
@@ -33,6 +43,7 @@ contextBridge.exposeInMainWorld('api', {
   // --- Story & OCR Management ---
   saveStory: (storyData) => ipcRenderer.invoke('save-story', storyData),
   getStories: () => ipcRenderer.invoke('get-stories'),
+  scanPdf: (filePath) => ipcRenderer.invoke('scan-pdf', filePath),  // <-- ADD THIS LINE
   
   // --- Library Management Handlers ---
   setActiveStory: (id) => ipcRenderer.invoke('set-active-story', id),
