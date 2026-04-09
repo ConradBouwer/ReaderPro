@@ -1,10 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- LOCAL SCRIPTS - OFFLINE ONLY -->
+    <script src="./node_modules/pdfjs-dist/build/pdf.min.js"></script>
+    <script src="./node_modules/tesseract.js/dist/tesseract.min.js"></script>
     
     <style>
+        /* LOCAL FONT DEFINITIONS - OFFLINE ONLY */
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('./fonts/opendyslexic/opendyslexic-regular.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'OpenDyslexic';
+            src: url('./fonts/opendyslexic/opendyslexic-bold.woff2') format('woff2');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'Comic Neue';
+            src: url('./fonts/comic-neue/comic-neue-v8-latin-regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        @font-face {
+            font-family: 'Comic Neue';
+            src: url('./fonts/comic-neue/comic-neue-v8-latin-700.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        
         :root { 
             --primary: #004a99;
             --dark: #001a3d;
@@ -593,11 +627,11 @@
 
                     <div id="sub-users" class="hidden">
                         <div class="card-title">Manage Teachers & Staff</div>
-						<div style="display: flex; gap: 10px; margin-bottom: 15px;">
-							<button class="btn btn-accent btn-small" onclick="exportTeachers()">📥 Export CSV</button>
-							<input type="file" id="teacher-csv-import" accept=".csv" style="display:none" onchange="importTeachers(this)">
-							<button class="btn btn-primary btn-small" onclick="document.getElementById('teacher-csv-import').click()">📤 Import CSV</button>
-						</div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <button class="btn btn-accent btn-small" onclick="exportTeachers()">📥 Export CSV</button>
+                            <input type="file" id="teacher-csv-import" accept=".csv" style="display:none" onchange="importTeachers(this)">
+                            <button class="btn btn-primary btn-small" onclick="document.getElementById('teacher-csv-import').click()">📤 Import CSV</button>
+                        </div>
                         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                             <input id="tn" placeholder="Teacher Full Name" style="flex:1;">
                             <input id="te" placeholder="Email Address" style="flex:1;">
@@ -627,7 +661,7 @@
                                     </div>
                                     <div style="text-align: right;">
                                         <div id="update-status-badge" class="status-badge" style="background: #e2e8f0; color: #64748b;">
-                                            <i class="fa fa-question-circle"></i> Status Unknown
+                                            <span>❓</span> Status Unknown
                                         </div>
                                     </div>
                                 </div>
@@ -636,10 +670,10 @@
                             <!-- Check for Updates Button -->
                             <div style="text-align: center; padding: 20px;">
                                 <button id="check-updates-btn" class="btn btn-primary" style="padding: 15px 40px; font-size: 16px;" onclick="checkForUpdates()">
-                                    <i class="fa fa-sync-alt"></i> Check for Updates
+                                    <span>🔄</span> Check for Updates
                                 </button>
                                 <div id="update-checking-spinner" style="display: none; margin-top: 15px; color: var(--primary);">
-                                    <i class="fa fa-spinner fa-spin"></i> Checking GitHub for updates...
+                                    <span>⏳</span> Checking GitHub for updates...
                                 </div>
                             </div>
 
@@ -647,7 +681,7 @@
                             <div id="update-available-panel" class="update-panel update-available" style="display: none;">
                                 <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
                                     <div style="background: var(--accent); color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-                                        <i class="fa fa-download"></i>
+                                        <span>⬇️</span>
                                     </div>
                                     <div>
                                         <div style="font-size: 18px; font-weight: 700; color: var(--dark);">Update Available!</div>
@@ -662,10 +696,10 @@
 
                                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                     <button class="btn btn-accent" style="flex: 1; min-width: 200px;" onclick="showTermsModal()">
-                                        <i class="fa fa-shield-alt"></i> Install Update
+                                        <span>🛡️</span> Install Update
                                     </button>
                                     <button class="btn" style="flex: 1; min-width: 200px; background: white; color: var(--primary); border: 2px solid var(--primary);" onclick="openReleasePage()">
-                                        <i class="fa fa-external-link-alt"></i> View on GitHub
+                                        <span>🔗</span> View on GitHub
                                     </button>
                                 </div>
                             </div>
@@ -683,14 +717,14 @@
                                 <div style="font-size: 18px; font-weight: 700; color: #dc2626;">Update Check Failed</div>
                                 <div id="update-error-message" style="font-size: 14px; color: #64748b; margin-top: 5px;"></div>
                                 <button class="btn btn-primary" style="margin-top: 15px;" onclick="checkForUpdates()">
-                                    <i class="fa fa-redo"></i> Try Again
+                                    <span>🔄</span> Try Again
                                 </button>
                             </div>
 
                             <!-- Backup Warning -->
                             <div class="update-panel update-warning">
                                 <div style="font-size: 14px; font-weight: 700; color: #92400e; margin-bottom: 10px;">
-                                    <i class="fa fa-info-circle"></i> Important: Backup Your Data
+                                    <span>ℹ️</span> Important: Backup Your Data
                                 </div>
                                 <div style="font-size: 13px; color: #78350f; line-height: 1.6;">
                                     Before installing any update, ensure you have backed up your database folder. 
@@ -748,7 +782,7 @@
                             Cancel
                         </button>
                         <button id="confirm-install-btn" class="btn btn-accent" style="flex: 1; opacity: 0.5; cursor: not-allowed;" disabled onclick="proceedWithInstallation()">
-                            <i class="fa fa-download"></i> Install Update
+                            <span>⬇️</span> Install Update
                         </button>
                     </div>
                 </div>
@@ -758,7 +792,7 @@
             <div id="install-modal" class="modal-overlay" style="background: rgba(0,0,0,0.8);">
                 <div style="background: white; border-radius: 16px; padding: 40px; text-align: center; max-width: 400px; width: 90%;">
                     <div id="install-spinner" style="margin-bottom: 20px;">
-                        <i class="fa fa-circle-notch fa-spin" style="font-size: 48px; color: var(--primary);"></i>
+                        <span style="font-size: 48px; color: var(--primary);">⏳</span>
                     </div>
                     <h3 style="margin: 0 0 10px 0; color: var(--dark);">Downloading Update...</h3>
                     <div class="progress-bar">
@@ -775,12 +809,12 @@
 
     <script>
         // --- GLOBAL DATA ---
-		let allStudents = [];
-		let allTeachers = [];
-		let allStories = [];
+        let allStudents = [];
+        let allTeachers = [];
+        let allStories = [];
 
-		let currentLogoBase64 = "";
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        let currentLogoBase64 = "";
+        pdfjsLib.GlobalWorkerOptions.workerSrc = './pdfjs/pdf.worker.min.js';
         document.getElementById('current-date').innerText = new Date().toLocaleDateString();
         let currentEditEmail = null;
         let questionData = [];
@@ -791,48 +825,48 @@
         // --- BRANDING LOGIC START ---
 
         function handleLogoUpload(input) {
-		const file = input.files[0];
-		if (!file) return;
+            const file = input.files[0];
+            if (!file) return;
 
-		const reader = new FileReader();
-		reader.onload = function(e) {
-        currentLogoBase64 = e.target.result;
-        
-        const logoImg = document.getElementById('sidebar-logo-img');
-        if (logoImg) {
-            logoImg.src = currentLogoBase64;
-            logoImg.style.display = 'block';
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentLogoBase64 = e.target.result;
+                
+                const logoImg = document.getElementById('sidebar-logo-img');
+                if (logoImg) {
+                    logoImg.src = currentLogoBase64;
+                    logoImg.style.display = 'block';
+                }
+                
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                    let r=0, g=0, b=0;
+                    const step = 400;
+                    for(let i=0; i<data.length; i+=step) {
+                        r += data[i]; g += data[i+1]; b += data[i+2];
+                    }
+                    const count = data.length / step;
+                    const avgR = Math.floor(r/count);
+                    const avgG = Math.floor(g/count);
+                    const avgB = Math.floor(b/count);
+                    
+                    const hex = "#" + ((1 << 24) + (avgR << 16) + (avgG << 8) + avgB).toString(16).slice(1);
+                    
+                    document.getElementById('set-color-primary').value = hex;
+                    document.getElementById('set-color-dark').value = adjustColor(hex, -40);
+                    document.getElementById('set-color-accent').value = adjustColor(hex, 40);
+                };
+                img.src = currentLogoBase64;
+            };
+            reader.readAsDataURL(file);
         }
-        
-        const img = new Image();
-        img.onload = function() {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            
-            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-            let r=0, g=0, b=0;
-            const step = 400;
-            for(let i=0; i<data.length; i+=step) {
-                r += data[i]; g += data[i+1]; b += data[i+2];
-            }
-            const count = data.length / step;
-            const avgR = Math.floor(r/count);
-            const avgG = Math.floor(g/count);
-            const avgB = Math.floor(b/count);
-            
-            const hex = "#" + ((1 << 24) + (avgR << 16) + (avgG << 8) + avgB).toString(16).slice(1);
-            
-            document.getElementById('set-color-primary').value = hex;
-            document.getElementById('set-color-dark').value = adjustColor(hex, -40);
-            document.getElementById('set-color-accent').value = adjustColor(hex, 40);
-        };
-        img.src = currentLogoBase64;
-    };
-    reader.readAsDataURL(file);
-}
 
         function adjustColor(hex, amt) {
             let usePound = false;
@@ -847,60 +881,60 @@
             return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16);
         }
 
- async function applyBranding() {
-    try {
-        const settings = await window.api.getSettings();
-        
-        if (settings) {
-            const name = settings.schoolName || "NAMIES HIGH";
-            const primary = settings.primary || '#004a99';
-            const dark = settings.dark || '#001a3d';
-            const accent = settings.accent || '#10b981';
-            const logo = settings.logo;
+        async function applyBranding() {
+            try {
+                const settings = await window.api.getSettings();
+                
+                if (settings) {
+                    const name = settings.schoolName || "NAMIES HIGH";
+                    const primary = settings.primary || '#004a99';
+                    const dark = settings.dark || '#001a3d';
+                    const accent = settings.accent || '#10b981';
+                    const logo = settings.logo;
 
-            document.getElementById('display-school-name').innerText = name;
-            document.getElementById('set-school-name').value = name;
-            document.getElementById('set-color-primary').value = primary;
-            document.getElementById('set-color-dark').value = dark;
-            document.getElementById('set-color-accent').value = accent;
+                    document.getElementById('display-school-name').innerText = name;
+                    document.getElementById('set-school-name').value = name;
+                    document.getElementById('set-color-primary').value = primary;
+                    document.getElementById('set-color-dark').value = dark;
+                    document.getElementById('set-color-accent').value = accent;
 
-            const root = document.documentElement;
-            root.style.setProperty('--primary', primary);
-            root.style.setProperty('--dark', dark);
-            root.style.setProperty('--accent', accent);
+                    const root = document.documentElement;
+                    root.style.setProperty('--primary', primary);
+                    root.style.setProperty('--dark', dark);
+                    root.style.setProperty('--accent', accent);
 
-            const logoImg = document.getElementById('sidebar-logo-img');
-            if (logo && logo.length > 10) {
-                logoImg.src = logo;
-                logoImg.style.display = 'block';
+                    const logoImg = document.getElementById('sidebar-logo-img');
+                    if (logo && logo.length > 10) {
+                        logoImg.src = logo;
+                        logoImg.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Branding load failed:", err);
             }
         }
-    } catch (err) {
-        console.error("Branding load failed:", err);
-    }
-}
 
-       async function saveSettings() {
-    const sName = document.getElementById('set-school-name').value;
-    const sLogo = document.getElementById('sidebar-logo-img').src;
-    const pColor = document.getElementById('set-color-primary').value;
-    const dColor = document.getElementById('set-color-dark').value;
-    const aColor = document.getElementById('set-color-accent').value;
+        async function saveSettings() {
+            const sName = document.getElementById('set-school-name').value;
+            const sLogo = document.getElementById('sidebar-logo-img').src;
+            const pColor = document.getElementById('set-color-primary').value;
+            const dColor = document.getElementById('set-color-dark').value;
+            const aColor = document.getElementById('set-color-accent').value;
 
-    try {
-        await window.api.saveSetting({ key: 'schoolName', value: sName });
-        await window.api.saveSetting({ key: 'logo', value: sLogo });
-        await window.api.saveSetting({ key: 'primary', value: pColor });
-        await window.api.saveSetting({ key: 'dark', value: dColor });
-        await window.api.saveSetting({ key: 'accent', value: aColor });
+            try {
+                await window.api.saveSetting({ key: 'schoolName', value: sName });
+                await window.api.saveSetting({ key: 'logo', value: sLogo });
+                await window.api.saveSetting({ key: 'primary', value: pColor });
+                await window.api.saveSetting({ key: 'dark', value: dColor });
+                await window.api.saveSetting({ key: 'accent', value: aColor });
 
-        alert("Settings Saved to Database!");
-        location.reload();
-    } catch (err) {
-        console.error(err);
-        alert("Failed to save to database. Check main.js");
-    }
-}
+                alert("Settings Saved to Database!");
+                location.reload();
+            } catch (err) {
+                console.error(err);
+                alert("Failed to save to database. Check main.js");
+            }
+        }
 
         function resetTheme() {
             if(confirm("Reset all branding to default?")) {
@@ -935,6 +969,7 @@
             if (id === 'settings') loadVersionInfo();
         }
 
+        // --- OFFLINE PDF SCANNING WITH LOCAL TESSERACT ---
         async function handlePdfScan(input) {
             const file = input.files[0];
             if (!file) return;
@@ -945,6 +980,16 @@
                 const arrayBuffer = await file.arrayBuffer();
                 const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                 let fullText = "";
+                
+                // Create Tesseract worker with LOCAL paths only
+                const { createWorker } = Tesseract;
+                const worker = await createWorker('eng+afr', 1, {
+                    workerPath: './tesseract/worker.min.js',
+                    langPath: './tesseract/traineddata',
+                    corePath: './tesseract/tesseract-core.wasm.js',
+                    logger: m => console.log(m)
+                });
+                
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const viewport = page.getViewport({ scale: 2.0 });
@@ -953,13 +998,17 @@
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
                     await page.render({ canvasContext: context, viewport: viewport }).promise;
-                    const { data: { text } } = await Tesseract.recognize(canvas, 'eng+afr');
+                    
+                    // Use local worker for OCR
+                    const { data: { text } } = await worker.recognize(canvas);
                     fullText += text + "\n";
                 }
+                
+                await worker.terminate();
                 textArea.value = fullText.trim();
             } catch (err) {
                 console.error(err);
-                alert("Error scanning PDF.");
+                alert("Error scanning PDF: " + err.message);
                 textArea.value = "";
             } finally {
                 textArea.readOnly = false;
@@ -1237,8 +1286,8 @@
             await window.api.saveTeacher(t);
             location.reload();
         }
-		
-		async function exportTeachers() {
+        
+        async function exportTeachers() {
             const data = await window.api.getAllTeachers();
             await window.api.exportToCSV({ type: 'Teachers', data });
         }
@@ -1302,40 +1351,40 @@
             studentSelect.style.background = '#f8fafc';
         }
 
-       function onGradeChange() {
-    const grade = document.getElementById('rep-filter-grade').value;
-    const classSelect = document.getElementById('rep-filter-class');
-    const studentSelect = document.getElementById('rep-filter-student');
-    
-    studentSelect.innerHTML = '<option value="">-- Select Student --</option>';
-    studentSelect.disabled = true;
-    studentSelect.style.background = '#f8fafc';
-    
-    if (!grade) {
-        classSelect.innerHTML = '<option value="">-- Select Class --</option>';
-        classSelect.disabled = true;
-        classSelect.style.background = '#f8fafc';
-        return;
-    }
-    
-    const classesInGrade = [...new Set(allStudentsData
-        .filter(s => s.grade && String(s.grade).trim() === grade.trim())
-        .map(s => s.class_id))]
-        .filter(c => c)
-        .sort((a, b) => {
-            const numA = parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0;
-            const numB = parseFloat(String(b).replace(/[^0-9.]/g, '')) || 0;
-            return numA - numB;
-        });
-    
-    classSelect.innerHTML = '<option value="">-- Select Class --</option>';
-    classesInGrade.forEach(c => {
-        classSelect.innerHTML += `<option value="${c}">Class ${c}</option>`;
-    });
-    
-    classSelect.disabled = false;
-    classSelect.style.background = 'white';
-}
+        function onGradeChange() {
+            const grade = document.getElementById('rep-filter-grade').value;
+            const classSelect = document.getElementById('rep-filter-class');
+            const studentSelect = document.getElementById('rep-filter-student');
+            
+            studentSelect.innerHTML = '<option value="">-- Select Student --</option>';
+            studentSelect.disabled = true;
+            studentSelect.style.background = '#f8fafc';
+            
+            if (!grade) {
+                classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+                classSelect.disabled = true;
+                classSelect.style.background = '#f8fafc';
+                return;
+            }
+            
+            const classesInGrade = [...new Set(allStudentsData
+                .filter(s => s.grade && String(s.grade).trim() === grade.trim())
+                .map(s => s.class_id))]
+                .filter(c => c)
+                .sort((a, b) => {
+                    const numA = parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0;
+                    const numB = parseFloat(String(b).replace(/[^0-9.]/g, '')) || 0;
+                    return numA - numB;
+                });
+            
+            classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+            classesInGrade.forEach(c => {
+                classSelect.innerHTML += `<option value="${c}">Class ${c}</option>`;
+            });
+            
+            classSelect.disabled = false;
+            classSelect.style.background = 'white';
+        }
 
         function onClassChange() {
             const grade = document.getElementById('rep-filter-grade').value;
@@ -1586,9 +1635,9 @@
             errorPanel.style.display = 'none';
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Checking...';
+            btn.innerHTML = '<span>⏳</span> Checking...';
             spinner.style.display = 'block';
-            statusBadge.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Checking...';
+            statusBadge.innerHTML = '<span>⏳</span> Checking...';
             statusBadge.style.background = '#dbeafe';
             statusBadge.style.color = '#2563eb';
 
@@ -1597,17 +1646,17 @@
 
                 spinner.style.display = 'none';
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa fa-sync-alt"></i> Check for Updates';
+                btn.innerHTML = '<span>🔄</span> Check for Updates';
 
                 if (!result.success) {
-                    statusBadge.innerHTML = '<i class="fa fa-exclamation-triangle"></i> Check Failed';
+                    statusBadge.innerHTML = '<span>⚠️</span> Check Failed';
                     statusBadge.style.background = '#fee2e2';
                     statusBadge.style.color = '#dc2626';
                     errorPanel.style.display = 'block';
                     document.getElementById('update-error-message').textContent = result.message;
                 } else if (result.hasUpdate) {
                     pendingUpdate = result;
-                    statusBadge.innerHTML = '<i class="fa fa-download"></i> Update Available';
+                    statusBadge.innerHTML = '<span>⬇️</span> Update Available';
                     statusBadge.style.background = '#dcfce7';
                     statusBadge.style.color = '#16a34a';
                     
@@ -1615,7 +1664,7 @@
                     document.getElementById('release-notes').textContent = result.releaseNotes || 'No release notes provided.';
                     availablePanel.style.display = 'block';
                 } else {
-                    statusBadge.innerHTML = '<i class="fa fa-check-circle"></i> Up to Date';
+                    statusBadge.innerHTML = '<span>✅</span> Up to Date';
                     statusBadge.style.background = '#dcfce7';
                     statusBadge.style.color = '#16a34a';
                     document.getElementById('latest-version-display').textContent = result.currentVersion;
@@ -1624,8 +1673,8 @@
             } catch (err) {
                 spinner.style.display = 'none';
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa fa-sync-alt"></i> Check for Updates';
-                statusBadge.innerHTML = '<i class="fa fa-exclamation-triangle"></i> Error';
+                btn.innerHTML = '<span>🔄</span> Check for Updates';
+                statusBadge.innerHTML = '<span>⚠️</span> Error';
                 statusBadge.style.background = '#fee2e2';
                 statusBadge.style.color = '#dc2626';
                 errorPanel.style.display = 'block';
@@ -1670,7 +1719,7 @@
                 
                 if (percent >= 100) {
                     document.getElementById('install-spinner').innerHTML = 
-                        '<i class="fa fa-cog fa-spin" style="font-size: 48px; color: var(--accent);"></i>';
+                        '<span style="font-size: 48px; color: var(--accent);">⚙️</span>';
                     document.querySelector('#install-modal h3').textContent = 'Installing...';
                     document.getElementById('download-progress-text').textContent = 'Launching installer...';
                 }
