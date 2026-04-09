@@ -3,13 +3,14 @@ const path = require('path');
 const Database = require('better-sqlite3');
 const fs = require('fs'); 
 const https = require('https');
-const http = require('http'); // ADD THIS for http redirects
+const http = require('http');
 const { exec } = require('child_process');
 const os = require('os');
+const { GlobalWorkerOptions } = require('pdfjs-dist');
 
 let mainWindow;
 let db;
-let updateInfo = null; // Store update info globally
+let updateInfo = null;
 
 /**
  * WINDOW INITIALIZATION
@@ -49,14 +50,9 @@ function initTables(dbInstance) {
   dbInstance.pragma('journal_mode = WAL');
   dbInstance.pragma('busy_timeout = 5000');
 
-  // 1. Settings Table (School Name, Logo, Colors)
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`).run();
-
-  // 2. Teacher Table & Master Admin
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS teachers (name TEXT, email TEXT PRIMARY KEY, password TEXT)`).run();
   dbInstance.prepare(`INSERT OR IGNORE INTO teachers (name, email, password) VALUES ('System Admin', 'cbouwer@namies.co.za', 'admin123')`).run();
-
-  // 3. Stories Table
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS stories (
     id INTEGER PRIMARY KEY AUTOINCREMENT, 
     id_string TEXT UNIQUE, 
@@ -67,11 +63,7 @@ function initTables(dbInstance) {
     words INTEGER,
     is_active INTEGER DEFAULT 0
   )`).run();
-
-  // 4. Roster Table
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS roster (name TEXT, email TEXT PRIMARY KEY, grade TEXT, class_id TEXT, language TEXT)`).run();
-
-  // 5. Results Table
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS results (
     id INTEGER PRIMARY KEY AUTOINCREMENT, 
     email TEXT, 
@@ -140,7 +132,7 @@ ipcMain.handle('save-setting', async (event, { key, value }) => {
   return { success: true };
 });
 
-// --- Auth & Roster Management (Strict Mode) ---
+// --- Auth & Roster Management ---
 ipcMain.handle('attempt-login', async (event, { email, password }) => {
   try {
     const student = db.prepare('SELECT * FROM roster WHERE email = ?').get(email);
@@ -264,15 +256,12 @@ ipcMain.handle('export-to-csv', async (event, { type, data }) => {
         data.forEach(s => {
           csvContent += `"${s.name}","${s.email}","${s.grade}","${s.class_id}","${s.language}"\n`;
         });
-      }
-	  
-	  else if (type === 'Teachers') {
+      } else if (type === 'Teachers') {
         csvContent = "Name,Email,Password\n";
         data.forEach(t => {
           csvContent += `"${t.name}","${t.email}","${t.password}"\n`;
         });
       }
-	  
       fs.writeFileSync(result.filePath, csvContent, 'utf8');
       return { success: true };
     } catch (error) {
@@ -315,14 +304,48 @@ ipcMain.handle('get-student-results', async (event, email) => {
   }
 });
 
+// --- PDF TEXT EXTRACTION (No Canvas/OCR - Just text extraction) ---
+// --- PDF TEXT EXTRACTION (Updated to use @napi-rs/canvas) ---
+ipcMain.handle('scan-pdf', async (event, filePath) => {
+  try {
+    // Import the NAPI version of canvas
+    const canvas = require('@napi-rs/canvas');
+    const pdfjsLib = require('pdfjs-dist');
+    
+    const data = new Uint8Array(fs.readFileSync(filePath));
+    
+    // We pass the canvas library into the document loader.
+    // This satisfies the 'canvas' dependency without needing C++ compilers.
+    const pdf = await pdfjsLib.getDocument({ 
+      data,
+      CanvasFactory: canvas.Canvas 
+    }).promise;
+
+    let fullText = "";
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(' ');
+      fullText += pageText + "\n\n";
+    }
+
+    return { success: true, text: fullText.trim() };
+  } catch (err) {
+    console.error("PDF Scan Error:", err);
+    return { 
+      success: false, 
+      message: "Could not extract text from PDF. If this is a scanned image, please copy-paste manually." 
+    };
+  }
+});
+
 // ==================== UPDATE CHECKER SYSTEM ====================
 
-// GitHub configuration - CHANGE THESE TO YOUR REPO
-const GITHUB_OWNER = 'ConradBouwer'; // e.g., 'johnDoe'
-const GITHUB_REPO = 'ReaderPro'; // e.g., 'literacy-portal'
-const CURRENT_VERSION = app.getVersion(); // Gets version from package.json
+const GITHUB_OWNER = 'ConradBouwer';
+const GITHUB_REPO = 'ReaderPro';
+const CURRENT_VERSION = app.getVersion();
 
-// Helper function to follow redirects
 function downloadWithRedirects(url, callback, progressCallback) {
   const client = url.startsWith('https:') ? https : http;
   
@@ -331,7 +354,6 @@ function downloadWithRedirects(url, callback, progressCallback) {
       'User-Agent': 'Literacy-Portal-Updater'
     }
   }, (response) => {
-    // Handle redirects (301, 302, 307, 308)
     if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
       console.log(`Following redirect to: ${response.headers.location}`);
       downloadWithRedirects(response.headers.location, callback, progressCallback);
@@ -349,7 +371,6 @@ function downloadWithRedirects(url, callback, progressCallback) {
   });
 }
 
-// Check for updates from GitHub Releases
 ipcMain.handle('check-for-updates', async () => {
   try {
     const options = {
@@ -378,9 +399,8 @@ ipcMain.handle('check-for-updates', async () => {
               return;
             }
 
-            const latestVersion = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
+            const latestVersion = release.tag_name.replace(/^v/, '');
             
-            // Compare versions (simple semver comparison)
             const currentParts = CURRENT_VERSION.split('.').map(Number);
             const latestParts = latestVersion.split('.').map(Number);
             
@@ -395,12 +415,10 @@ ipcMain.handle('check-for-updates', async () => {
             }
 
             if (hasUpdate) {
-              // Find appropriate asset for current platform
               const platform = process.platform;
               const arch = process.arch;
               let asset = null;
               
-              // Map platform to asset patterns
               const platformPatterns = {
                 win32: /\.exe$|\.msi$|\.nsis\.exe$/i,
                 darwin: /\.dmg$|\.zip$/i,
@@ -477,7 +495,6 @@ ipcMain.handle('check-for-updates', async () => {
   }
 });
 
-// Download and install update
 ipcMain.handle('download-and-install-update', async (event, data = {}) => {
   const { acceptedTerms } = data;
   
@@ -490,7 +507,6 @@ ipcMain.handle('download-and-install-update', async (event, data = {}) => {
   }
 
   try {
-    // Create temp directory for download
     const tempDir = path.join(os.tmpdir(), 'literacy-portal-update');
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
@@ -498,7 +514,6 @@ ipcMain.handle('download-and-install-update', async (event, data = {}) => {
 
     const downloadPath = path.join(tempDir, updateInfo.assetName || 'update.exe');
 
-    // Download the file with redirect support
     await new Promise((resolve, reject) => {
       const file = fs.createWriteStream(downloadPath);
       
@@ -534,32 +549,24 @@ ipcMain.handle('download-and-install-update', async (event, data = {}) => {
       });
     });
 
-    // Verify file was downloaded
     if (!fs.existsSync(downloadPath)) {
       return { success: false, message: 'Download failed - file not found.' };
     }
 
-    // Close database before installing
     if (db) {
       db.close();
       db = null;
     }
 
-    // Run installer based on platform
     if (process.platform === 'win32') {
-      // Windows: Run installer and close current app
       exec(`"${downloadPath}" /S`, (error) => {
         if (error) {
           console.error('Install error:', error);
-          // Reconnect DB if install fails
-          const savedPath = ''; // You may want to store this globally
           return;
         }
-        // Installer launched successfully, quit app
         app.quit();
       });
     } else if (process.platform === 'darwin') {
-      // macOS: Open DMG or ZIP
       exec(`open "${downloadPath}"`, (error) => {
         if (error) {
           console.error('Install error:', error);
@@ -568,7 +575,6 @@ ipcMain.handle('download-and-install-update', async (event, data = {}) => {
         app.quit();
       });
     } else {
-      // Linux: Make executable and run
       fs.chmodSync(downloadPath, '755');
       exec(`"${downloadPath}"`, (error) => {
         if (error) {
@@ -589,7 +595,6 @@ ipcMain.handle('download-and-install-update', async (event, data = {}) => {
   }
 });
 
-// Open release page in browser as fallback
 ipcMain.handle('open-release-page', async () => {
   if (updateInfo && updateInfo.htmlUrl) {
     await shell.openExternal(updateInfo.htmlUrl);
@@ -598,7 +603,6 @@ ipcMain.handle('open-release-page', async () => {
   return { success: false, message: 'No release page available.' };
 });
 
-// Get current version
 ipcMain.handle('get-app-version', async () => {
   return { 
     version: CURRENT_VERSION,
