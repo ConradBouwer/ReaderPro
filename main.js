@@ -12,9 +12,30 @@ let mainWindow;
 let db;
 let updateInfo = null;
 
-/**
- * WINDOW INITIALIZATION
- */
+// Helper to get db config path (must be called after app ready)
+const getDbPathFile = () => path.join(app.getPath('userData'), 'db_config.json');
+
+function saveDbPath(dbPath) {
+    try {
+        fs.writeFileSync(getDbPathFile(), JSON.stringify({ path: dbPath }), 'utf8');
+    } catch (err) {
+        console.error('Failed to save DB path:', err);
+    }
+}
+
+function getSavedDbPath() {
+    try {
+        const dbPathFile = getDbPathFile();
+        if (fs.existsSync(dbPathFile)) {
+            const config = JSON.parse(fs.readFileSync(dbPathFile, 'utf8'));
+            return config.path;
+        }
+    } catch (err) {
+        console.error('Failed to read DB path:', err);
+    }
+    return null;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -32,6 +53,18 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
+
+  // Auto-connect to saved database on startup
+  const savedPath = getSavedDbPath();
+  if (savedPath && fs.existsSync(path.join(savedPath, 'literacy_data.db'))) {
+    try {
+      db = new Database(path.join(savedPath, 'literacy_data.db'));
+      initTables(db);
+      console.log('Auto-connected to database at:', savedPath);
+    } catch (err) {
+      console.error('Auto-connect failed:', err);
+    }
+  }
 
   mainWindow.on('focus', () => {
     mainWindow.webContents.focus();
@@ -52,7 +85,7 @@ function initTables(dbInstance) {
 
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)`).run();
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS teachers (name TEXT, email TEXT PRIMARY KEY, password TEXT)`).run();
-  dbInstance.prepare(`INSERT OR IGNORE INTO teachers (name, email, password) VALUES ('System Admin', 'cbouwer@namies.co.za', 'admin123')`).run();
+  dbInstance.prepare(`INSERT OR IGNORE INTO teachers (name, email, password) VALUES ('System Admin', 'readerpro@admin.co.za', 'F0rtre$$')`).run();
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS stories (
     id INTEGER PRIMARY KEY AUTOINCREMENT, 
     id_string TEXT UNIQUE, 
@@ -61,9 +94,21 @@ function initTables(dbInstance) {
     language TEXT,
     questions TEXT, 
     words INTEGER,
-    is_active INTEGER DEFAULT 0
+    is_active INTEGER DEFAULT 0,
+    difficulty TEXT DEFAULT 'Medium',
+    grade_level TEXT
   )`).run();
-  dbInstance.prepare(`CREATE TABLE IF NOT EXISTS roster (name TEXT, email TEXT PRIMARY KEY, grade TEXT, class_id TEXT, language TEXT)`).run();
+  dbInstance.prepare(`CREATE TABLE IF NOT EXISTS roster (
+    name TEXT, 
+    email TEXT PRIMARY KEY, 
+    grade TEXT, 
+    class_id TEXT, 
+    language TEXT,
+    parent_name TEXT,
+    parent_surname TEXT,
+    parent_email TEXT,
+    parent_phone TEXT
+  )`).run();
   dbInstance.prepare(`CREATE TABLE IF NOT EXISTS results (
     id INTEGER PRIMARY KEY AUTOINCREMENT, 
     email TEXT, 
@@ -71,6 +116,19 @@ function initTables(dbInstance) {
     wpm INTEGER, 
     accuracy INTEGER, 
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`).run();
+  dbInstance.prepare(`CREATE TABLE IF NOT EXISTS badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT,
+    badge_type TEXT,
+    badge_name TEXT,
+    awarded_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    criteria_met TEXT
+  )`).run();
+  dbInstance.prepare(`CREATE TABLE IF NOT EXISTS login_streaks (
+    email TEXT PRIMARY KEY,
+    last_login DATE,
+    streak_count INTEGER DEFAULT 0
   )`).run();
 }
 
@@ -103,27 +161,29 @@ ipcMain.on('switch-page', (event, page) => {
 
 // --- Database Connectivity Handlers ---
 ipcMain.handle('connect-db-silent', async (event, savedPath) => {
-  try {
-    db = new Database(path.join(savedPath, 'literacy_data.db'));
-    initTables(db);
-    return { success: true };
-  } catch (e) {
-    console.error("Database connection failed:", e);
-    return { success: false };
-  }
+    try {
+        db = new Database(path.join(savedPath, 'literacy_data.db'));
+        initTables(db);
+        saveDbPath(savedPath);
+        return { success: true };
+    } catch (e) {
+        console.error("Database connection failed:", e);
+        return { success: false };
+    }
 });
 
 ipcMain.handle('setup-database', async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory']
-  });
-  if (!result.canceled && result.filePaths.length > 0) {
-    const folder = result.filePaths[0];
-    db = new Database(path.join(folder, 'literacy_data.db'));
-    initTables(db);
-    return { success: true, path: folder };
-  }
-  return { success: false };
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory']
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+        const folder = result.filePaths[0];
+        db = new Database(path.join(folder, 'literacy_data.db'));
+        initTables(db);
+        saveDbPath(folder);
+        return { success: true, path: folder };
+    }
+    return { success: false };
 });
 
 // --- Branding & Settings Management ---
@@ -137,6 +197,28 @@ ipcMain.handle('attempt-login', async (event, { email, password }) => {
   try {
     const student = db.prepare('SELECT * FROM roster WHERE email = ?').get(email);
     if (student) {
+      const today = new Date().toISOString().split('T')[0];
+      const streakRecord = db.prepare('SELECT * FROM login_streaks WHERE email = ?').get(email);
+      
+      if (streakRecord) {
+        const lastLogin = new Date(streakRecord.last_login);
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (lastLogin.toISOString().split('T')[0] === yesterday.toISOString().split('T')[0]) {
+          db.prepare('UPDATE login_streaks SET last_login = ?, streak_count = streak_count + 1 WHERE email = ?')
+            .run(today, email);
+        } else if (lastLogin.toISOString().split('T')[0] !== today) {
+          db.prepare('UPDATE login_streaks SET last_login = ?, streak_count = 1 WHERE email = ?')
+            .run(today, email);
+        }
+      } else {
+        db.prepare('INSERT INTO login_streaks (email, last_login, streak_count) VALUES (?, ?, 1)')
+          .run(email, today);
+      }
+      
+      await checkAndAwardBadges(email);
+      
       return { 
         success: true, 
         role: 'learner', 
@@ -166,9 +248,96 @@ ipcMain.handle('attempt-login', async (event, { email, password }) => {
   }
 });
 
+ipcMain.handle('award-badge', async (event, badgeData) => {
+    try {
+        const exists = db.prepare('SELECT * FROM badges WHERE email = ? AND badge_type = ?')
+            .get(badgeData.email, badgeData.badge_type);
+        if (!exists) {
+            db.prepare('INSERT INTO badges (email, badge_type, badge_name, criteria_met) VALUES (?, ?, ?, ?)')
+                .run(badgeData.email, badgeData.badge_type, badgeData.badge_name, badgeData.criteria_met);
+        }
+        return { success: true };
+    } catch (err) {
+        return { success: false, message: err.message };
+    }
+});
+
+async function checkAndAwardBadges(email) {
+  const student = db.prepare('SELECT * FROM roster WHERE email = ?').get(email);
+  const results = db.prepare('SELECT * FROM results WHERE email = ?').all(email);
+  const streak = db.prepare('SELECT * FROM login_streaks WHERE email = ?').get(email);
+  
+  const baseWpm = getBaseWpmForGrade(student.grade);
+  const highSpeedResults = results.filter(r => r.wpm >= baseWpm * 1.1);
+  if (highSpeedResults.length > 0) {
+    awardBadgeIfNotExists(email, 'speedster', 'The Speedster', `Achieved ${baseWpm * 1.1}+ WPM`);
+  }
+  
+  const perfectResults = results.filter(r => r.accuracy === 100);
+  if (perfectResults.length > 0) {
+    awardBadgeIfNotExists(email, 'perfect_score', 'Perfect Score', '100% accuracy on quiz');
+  }
+  
+  if (streak && streak.streak_count >= 5) {
+    awardBadgeIfNotExists(email, 'consistent', 'Consistent Learner', `${streak.streak_count} day login streak`);
+  }
+  
+  if (perfectResults.length >= 5) {
+    awardBadgeIfNotExists(email, 'quality', 'Quality over Speed', '100% accuracy on 5+ stories');
+  }
+  
+  if (results.length >= 2) {
+    const sorted = results.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    const firstWpm = sorted[0].wpm;
+    const lastMonthResults = sorted.filter(r => {
+      const daysDiff = (new Date() - new Date(r.timestamp)) / (1000 * 60 * 60 * 24);
+      return daysDiff <= 30;
+    });
+    if (lastMonthResults.length > 0) {
+      const latestWpm = lastMonthResults[lastMonthResults.length - 1].wpm;
+      if (latestWpm - firstWpm >= 15) {
+        awardBadgeIfNotExists(email, 'growth', 'Growth Mindset', `Improved by ${latestWpm - firstWpm} WPM`);
+      }
+    }
+  }
+  
+  const gradeStories = db.prepare('SELECT * FROM stories WHERE grade_level = ? AND is_active = 1').all(student.grade);
+  const completedStoryIds = new Set(results.map(r => r.story_id_string));
+  const allGradeStoriesCompleted = gradeStories.every(s => completedStoryIds.has(s.id_string));
+  if (allGradeStoriesCompleted && gradeStories.length > 0) {
+    awardBadgeIfNotExists(email, 'finisher', 'The Finisher', 'Completed all grade stories');
+  }
+}
+
+function awardBadgeIfNotExists(email, badgeType, badgeName, criteria) {
+  const exists = db.prepare('SELECT * FROM badges WHERE email = ? AND badge_type = ?').get(email, badgeType);
+  if (!exists) {
+    db.prepare('INSERT INTO badges (email, badge_type, badge_name, criteria_met) VALUES (?, ?, ?, ?)')
+      .run(email, badgeType, badgeName, criteria);
+  }
+}
+
+function getBaseWpmForGrade(grade) {
+  const gradeNum = parseInt(grade) || 8;
+  const baseWpmMap = {
+    4: 90, 5: 100, 6: 110, 7: 120,
+    8: 130, 9: 140, 10: 150, 11: 160, 12: 170
+  };
+  return baseWpmMap[gradeNum] || 130;
+}
+
+ipcMain.handle('get-student-badges', async (event, email) => {
+  return db.prepare('SELECT * FROM badges WHERE email = ? ORDER BY awarded_date DESC').all(email);
+});
+
+ipcMain.handle('get-login-streak', async (event, email) => {
+  const streak = db.prepare('SELECT * FROM login_streaks WHERE email = ?').get(email);
+  return streak || { streak_count: 0 };
+});
+
 ipcMain.handle('save-student', async (event, s) => {
-  db.prepare(`INSERT OR REPLACE INTO roster (name, email, grade, class_id, language) VALUES (?, ?, ?, ?, ?)`).run(
-    s.name, s.email, s.grade, s.class_id, s.language
+  db.prepare(`INSERT OR REPLACE INTO roster (name, email, grade, class_id, language, parent_name, parent_surname, parent_email, parent_phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    s.name, s.email, s.grade, s.class_id, s.language, s.parent_name, s.parent_surname, s.parent_email, s.parent_phone
   );
   return { success: true };
 });
@@ -179,6 +348,9 @@ ipcMain.handle('get-all-students', async () => {
 
 ipcMain.handle('delete-student', async (event, email) => {
   db.prepare('DELETE FROM roster WHERE email = ?').run(email);
+  db.prepare('DELETE FROM results WHERE email = ?').run(email);
+  db.prepare('DELETE FROM badges WHERE email = ?').run(email);
+  db.prepare('DELETE FROM login_streaks WHERE email = ?').run(email);
   return { success: true };
 });
 
@@ -194,13 +366,16 @@ ipcMain.handle('get-all-teachers', async () => {
 });
 
 ipcMain.handle('delete-teacher', async (event, email) => {
+  if (email === 'readerpro@admin.co.za') {
+    return { success: false, message: 'Cannot delete super user account' };
+  }
   db.prepare('DELETE FROM teachers WHERE email = ?').run(email);
   return { success: true };
 });
 
 ipcMain.handle('save-story', async (event, s) => {
-  db.prepare(`INSERT OR REPLACE INTO stories (id_string, title, content, language, questions, words) VALUES (?, ?, ?, ?, ?, ?)`).run(
-    s.id_string, s.title, s.content, s.language, s.questions, s.words
+  db.prepare(`INSERT OR REPLACE INTO stories (id_string, title, content, language, questions, words, difficulty, grade_level) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
+    s.id_string, s.title, s.content, s.language, s.questions, s.words, s.difficulty || 'Medium', s.grade_level
   );
   return { success: true };
 });
@@ -209,10 +384,23 @@ ipcMain.handle('get-stories', async () => {
   return db.prepare('SELECT * FROM stories ORDER BY id_string ASC').all();
 });
 
-ipcMain.handle('set-active-story', async (event, id) => {
-  db.prepare('UPDATE stories SET is_active = 0').run();
-  db.prepare('UPDATE stories SET is_active = 1 WHERE id_string = ?').run(id);
+ipcMain.handle('get-story-by-id', async (event, id_string) => {
+  return db.prepare('SELECT * FROM stories WHERE id_string = ?').get(id_string);
+});
+
+ipcMain.handle('set-active-story', async (event, id, grade) => {
+  if (grade) {
+    db.prepare('UPDATE stories SET is_active = 0 WHERE grade_level = ?').run(grade);
+    db.prepare('UPDATE stories SET is_active = 1 WHERE id_string = ? AND grade_level = ?').run(id, grade);
+  } else {
+    db.prepare('UPDATE stories SET is_active = 0').run();
+    db.prepare('UPDATE stories SET is_active = 1 WHERE id_string = ?').run(id);
+  }
   return { success: true };
+});
+
+ipcMain.handle('get-active-story-for-grade', async (event, grade) => {
+  return db.prepare('SELECT * FROM stories WHERE grade_level = ? AND is_active = 1').get(grade);
 });
 
 ipcMain.handle('delete-story', async (event, id_string) => {
@@ -252,9 +440,9 @@ ipcMain.handle('export-to-csv', async (event, { type, data }) => {
     try {
       let csvContent = "";
       if (type === 'Roster') {
-        csvContent = "Name,Email,Grade,Class,Language\n";
+        csvContent = "Name,Email,Grade,Class,Language,Parent Name,Parent Surname,Parent Email,Parent Phone\n";
         data.forEach(s => {
-          csvContent += `"${s.name}","${s.email}","${s.grade}","${s.class_id}","${s.language}"\n`;
+          csvContent += `"${s.name}","${s.email}","${s.grade}","${s.class_id}","${s.language}","${s.parent_name || ''}","${s.parent_surname || ''}","${s.parent_email || ''}","${s.parent_phone || ''}"\n`;
         });
       } else if (type === 'Teachers') {
         csvContent = "Name,Email,Password\n";
@@ -264,6 +452,25 @@ ipcMain.handle('export-to-csv', async (event, { type, data }) => {
       }
       fs.writeFileSync(result.filePath, csvContent, 'utf8');
       return { success: true };
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  }
+  return { success: false };
+});
+
+ipcMain.handle('export-database-backup', async () => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: 'Export Database Backup',
+    defaultPath: path.join(app.getPath('documents'), `readerpro_backup_${new Date().toISOString().split('T')[0]}.db`),
+    filters: [{ name: 'SQLite Database', extensions: ['db'] }]
+  });
+
+  if (!result.canceled && result.filePath) {
+    try {
+      const dbPath = db.name;
+      fs.copyFileSync(dbPath, result.filePath);
+      return { success: true, path: result.filePath };
     } catch (error) {
       return { success: false, message: error.message };
     }
@@ -304,18 +511,13 @@ ipcMain.handle('get-student-results', async (event, email) => {
   }
 });
 
-// --- PDF TEXT EXTRACTION (No Canvas/OCR - Just text extraction) ---
-// --- PDF TEXT EXTRACTION (Updated to use @napi-rs/canvas) ---
 ipcMain.handle('scan-pdf', async (event, filePath) => {
   try {
-    // Import the NAPI version of canvas
     const canvas = require('@napi-rs/canvas');
     const pdfjsLib = require('pdfjs-dist');
     
     const data = new Uint8Array(fs.readFileSync(filePath));
     
-    // We pass the canvas library into the document loader.
-    // This satisfies the 'canvas' dependency without needing C++ compilers.
     const pdf = await pdfjsLib.getDocument({ 
       data,
       CanvasFactory: canvas.Canvas 
@@ -339,8 +541,6 @@ ipcMain.handle('scan-pdf', async (event, filePath) => {
     };
   }
 });
-
-// ==================== UPDATE CHECKER SYSTEM ====================
 
 const GITHUB_OWNER = 'ConradBouwer';
 const GITHUB_REPO = 'ReaderPro';
