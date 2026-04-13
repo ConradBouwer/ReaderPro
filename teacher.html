@@ -145,29 +145,69 @@
 
         .stats-badge { background: #e2e8f0; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; color: #475569; margin-right: 5px; }
 
-@media print {
-    .sidebar, .top-bar, .nav-item, .btn, .no-print, #rep-filter-grade, #rep-filter-class, #rep-filter-student {
-        display: none !important;
-    }
+        /* FIXED PRINT STYLES - No cutoff, no scrollbars */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 15mm;
+            }
+            
+            body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            
+            .sidebar, .top-bar, .nav-item, .btn, .no-print, 
+            #rep-filter-grade, #rep-filter-class, #rep-filter-student,
+            .game-tabs, .game-area, #games-section, #sec-settings,
+            #sec-stories, #sec-library, #sec-roster, .tab-nav {
+                display: none !important;
+            }
 
-    .sidebar-layout, .main {
-        margin: 0 !important;
-        padding: 0 !important;
-        display: block !important;
-        width: 100% !important;
-    }
+            .main {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                overflow: visible !important;
+            }
 
-    .card {
-        box-shadow: none !important;
-        border: none !important;
-        width: 100% !important;
-    }
+            .content {
+                padding: 0 !important;
+                width: 100% !important;
+            }
 
-    #report-preview-container {
-        display: block !important;
-        padding: 0 !important;
-    }
-}
+            #sec-reports {
+                display: block !important;
+            }
+
+            .card {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                page-break-inside: avoid;
+                margin: 0 !important;
+                padding: 15px !important;
+            }
+
+            #report-preview-container {
+                display: block !important;
+                padding: 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+            }
+
+            /* Ensure report fits on one page */
+            #report-preview-container .card {
+                page-break-after: always;
+                page-break-inside: avoid;
+            }
+
+            /* Scale down if needed to fit */
+            #report-preview-container {
+                transform: scale(0.95);
+                transform-origin: top center;
+            }
+        }
 
         .q-block { background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
         .opt-container { margin-left: 20px; margin-top: 10px; border-left: 3px solid var(--primary); padding-left: 15px; }
@@ -332,6 +372,78 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+
+        /* Filter styles */
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-row select {
+            width: auto;
+            min-width: 150px;
+            margin-bottom: 0;
+        }
+
+        /* Parent form styles */
+        .parent-form {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .form-grid input {
+            margin-bottom: 0;
+        }
+
+        /* Trophy case styles */
+        .trophy-case {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .badge-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .badge-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Difficulty badge */
+        .difficulty-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .difficulty-easy { background: #dcfce7; color: #166534; }
+        .difficulty-medium { background: #fef3c7; color: #92400e; }
+        .difficulty-hard { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
@@ -339,7 +451,7 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <img id="sidebar-logo-img" src="" alt="School Logo">
-            <div id="display-school-name" style="font-weight: bold; font-size: 18px; text-transform: uppercase;">NAMIES HIGH</div>
+            <div id="display-school-name" style="font-weight: bold; font-size: 18px; text-transform: uppercase;">Reader-Pro</div>
             <div style="font-size: 11px; opacity: 0.6;">Admin Portal</div>
         </div>
         <div class="nav-item active" id="btn-roster" onclick="showSection('roster')">👥 Student Roster</div>
@@ -371,6 +483,18 @@
                             <button class="btn btn-primary btn-small" onclick="document.getElementById('csv-import').click()">📤 Import CSV</button>
                         </div>
                     </div>
+                    
+                    <!-- Filters -->
+                    <div class="filter-row">
+                        <select id="filter-grade" onchange="filterRoster()">
+                            <option value="">All Grades</option>
+                        </select>
+                        <select id="filter-class" onchange="filterRoster()">
+                            <option value="">All Classes</option>
+                        </select>
+                        <button class="btn btn-small" style="background: #e2e8f0; color: #475569;" onclick="clearFilters()">Clear Filters</button>
+                    </div>
+                    
                     <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                         <input id="sn" placeholder="Full Name" style="flex: 2;">
                         <input id="se" placeholder="Email Address" style="flex: 2;">
@@ -383,7 +507,42 @@
                         <button id="roster-btn" class="btn btn-primary" onclick="addS()">Add Student</button>
                         <button id="cancel-edit" class="btn btn-danger hidden" onclick="cancelEdit()">Cancel</button>
                     </div>
+
+                    <!-- Parent Details Form (Hidden by default) -->
+                    <div id="parent-form" class="parent-form hidden">
+                        <h4 style="margin: 0 0 15px 0; color: var(--dark);">Parent/Guardian Details</h4>
+                        <div class="form-grid">
+                            <input id="parent-name" placeholder="Parent Name">
+                            <input id="parent-surname" placeholder="Parent Surname">
+                            <input id="parent-email" placeholder="Parent Email (D6)">
+                            <input id="parent-phone" placeholder="Parent Phone">
+                        </div>
+                    </div>
                 </div>
+                
+                <!-- Student Form View Modal -->
+                <div id="student-modal" class="modal-overlay" onclick="if(event.target === this) closeStudentModal()">
+                    <div class="modal-content" style="max-width: 700px;">
+                        <div class="modal-header">
+                            <h2 style="margin: 0;">Student Details</h2>
+                        </div>
+                        <div class="modal-body">
+                            <div id="student-details-content"></div>
+                            
+                            <div class="trophy-case" style="margin-top: 20px;">
+                                <h4 style="margin: 0 0 10px 0; color: #92400e;">🏆 Trophy Case</h4>
+                                <div id="student-trophies" class="badge-grid">
+                                    <p style="color: #92400e; margin: 0;">No badges earned yet</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn" style="background: #e2e8f0; color: #475569;" onclick="closeStudentModal()">Close</button>
+                            <button class="btn btn-primary" onclick="saveParentDetails()">Save Parent Details</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <table>
                         <thead>
@@ -418,7 +577,7 @@
                     </div>
                     <table>
                         <thead>
-                            <tr><th>ID</th><th>Title</th><th>Language</th><th>Words</th><th>Status</th><th>Action</th></tr>
+                            <tr><th>ID</th><th>Title</th><th>Language</th><th>Grade</th><th>Difficulty</th><th>Words</th><th>Status</th><th>Action</th></tr>
                         </thead>
                         <tbody id="library-body"></tbody>
                     </table>
@@ -442,16 +601,49 @@
 
                     <div class="card" style="flex: 1.5; overflow-y: auto;">
                         <div class="card-title">2. Details & Quiz</div>
-                        <label style="font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 2px; display: block;">Manual Language Assignment</label>
-                        <select id="slang">
-                            <option value="English">English</option>
-                            <option value="Afrikaans">Afrikaans</option>
-                        </select>
-                        <input id="sid" placeholder="Unique Story ID (e.g., S01)">
+                        
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 2px; display: block;">Story ID</label>
+                        <input id="sid" placeholder="Unique Story ID (e.g., Eng-08-01)">
+                        
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 2px; display: block;">Story Title</label>
                         <input id="st" placeholder="Story Title">
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 2px; display: block;">Language</label>
+                                <select id="slang">
+                                    <option value="English">English</option>
+                                    <option value="Afrikaans">Afrikaans</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 2px; display: block;">Grade Level</label>
+                                <select id="sgrade">
+                                    <option value="4">Grade 4</option>
+                                    <option value="5">Grade 5</option>
+                                    <option value="6">Grade 6</option>
+                                    <option value="7">Grade 7</option>
+                                    <option value="8">Grade 8</option>
+                                    <option value="9">Grade 9</option>
+                                    <option value="10">Grade 10</option>
+                                    <option value="11">Grade 11</option>
+                                    <option value="12">Grade 12</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 11px; color: #64748b; font-weight: bold; margin-bottom: 2px; display: block;">Difficulty</label>
+                                <select id="sdifficulty">
+                                    <option value="Easy">Easy</option>
+                                    <option value="Medium" selected>Medium</option>
+                                    <option value="Hard">Hard</option>
+                                </select>
+                            </div>
+                        </div>
+                        
                         <div id="q-container"></div>
                         <button class="btn btn-small" style="width:100%; margin: 10px 0; background: #e2e8f0; color: #475569;" onclick="addQ()">+ Add Question</button>
                         <button class="btn btn-primary" style="width:100%; margin-top: 10px;" onclick="saveFullStory()">Save Story to Library</button>
+                        <button id="cancel-story-edit" class="btn btn-danger hidden" style="width:100%; margin-top: 10px;" onclick="cancelStoryEdit()">Cancel Edit</button>
                     </div>
                 </div>
             </div>
@@ -499,7 +691,7 @@
                                 <img id="report-logo" src="" style="display: none; height: 60px; width: auto; background: white; padding: 5px; border-radius: 8px;">
                                 <div>
                                     <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">PROGRESS REPORT</h1>
-                                    <p id="report-school-name" style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Literacy Portal</p>
+                                    <p id="report-school-name" style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px; text-transform: uppercase; letter-spacing: 2px;">Reader-Pro</p>
                                 </div>
                             </div>
                             <div style="text-align: right;">
@@ -581,6 +773,7 @@
                         <div class="tab-btn active" id="tab-brand-link" onclick="switchTab('branding')">School Branding</div>
                         <div class="tab-btn" id="tab-user-link" onclick="switchTab('users')">User Management</div>
                         <div class="tab-btn" id="tab-update-link" onclick="switchTab('updates')">System Updates</div>
+                        <div class="tab-btn" id="tab-backup-link" onclick="switchTab('backup')">Database Backup</div>
                     </div>
 
                     <div id="sub-branding">
@@ -697,9 +890,6 @@
                                     <button class="btn btn-accent" style="flex: 1; min-width: 200px;" onclick="showTermsModal()">
                                         <span>🛡️</span> Install Update
                                     </button>
-                                    <button class="btn" style="flex: 1; min-width: 200px; background: white; color: var(--primary); border: 2px solid var(--primary);" onclick="openReleasePage()">
-                                        <span>🔗</span> View on GitHub
-                                    </button>
                                 </div>
                             </div>
 
@@ -730,6 +920,53 @@
                                     Updates may reset configuration files or require database migrations. 
                                     Your student data is stored in the selected database folder - make sure it's backed up to a secure location.
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DATABASE BACKUP TAB -->
+                    <div id="sub-backup" class="hidden">
+                        <div class="card-title">Database Backup & Export</div>
+                        
+                        <div style="background: #f0f9ff; padding: 25px; border-radius: 12px; border: 2px solid #3b82f6; margin-bottom: 20px;">
+                            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                                <span style="font-size: 48px;">💾</span>
+                                <div>
+                                    <div style="font-size: 18px; font-weight: 700; color: var(--dark);">Export Database Backup</div>
+                                    <div style="font-size: 14px; color: #64748b; margin-top: 5px;">Create a complete backup of all student data, results, and settings</div>
+                                </div>
+                            </div>
+                            
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                                <div style="font-size: 13px; color: #334155; line-height: 1.6;">
+                                    <strong>What gets backed up:</strong>
+                                    <ul style="margin: 10px 0; padding-left: 20px;">
+                                        <li>All student records and parent details</li>
+                                        <li>Reading assessment results and progress history</li>
+                                        <li>Story library and quiz questions</li>
+                                        <li>Teacher accounts and school settings</li>
+                                        <li>Student badges and achievements</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 16px;" onclick="exportDatabaseBackup()">
+                                <span>💾</span> Export Database Backup
+                            </button>
+                        </div>
+
+                        <div class="update-panel update-warning">
+                            <div style="font-size: 14px; font-weight: 700; color: #92400e; margin-bottom: 10px;">
+                                <span>⚠️</span> Backup Recommendations
+                            </div>
+                            <div style="font-size: 13px; color: #78350f; line-height: 1.6;">
+                                We recommend creating backups:
+                                <ul style="margin: 10px 0; padding-left: 20px;">
+                                    <li>Before installing software updates</li>
+                                    <li>At the end of each term</li>
+                                    <li>Before bulk importing new student data</li>
+                                    <li>Store backups in a secure location separate from the main database</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -811,9 +1048,11 @@
         let allStudents = [];
         let allTeachers = [];
         let allStories = [];
+        let allResults = [];
 
         let currentLogoBase64 = "";
         let currentEditEmail = null;
+        let currentEditStoryId = null;
         let questionData = [];
 
         // --- UPDATE SYSTEM VARIABLES ---
@@ -883,7 +1122,7 @@
                 const settings = await window.api.getSettings();
                 
                 if (settings) {
-                    const name = settings.schoolName || "NAMIES HIGH";
+                    const name = settings.schoolName || "Reader-Pro";
                     const primary = settings.primary || '#004a99';
                     const dark = settings.dark || '#001a3d';
                     const accent = settings.accent || '#10b981';
@@ -902,7 +1141,6 @@
 
                     const logoImg = document.getElementById('sidebar-logo-img');
                     if (logo && logo.length > 10) {
-                        // Clean the logo string of any quotes
                         const cleanLogo = logo.replace(/['"]+/g, '');
                         logoImg.src = cleanLogo;
                         logoImg.style.display = 'block';
@@ -915,7 +1153,6 @@
 
         async function saveSettings() {
             const sName = document.getElementById('set-school-name').value;
-            // Use currentLogoBase64 if a new logo was uploaded, otherwise get from current img src
             const logoElement = document.getElementById('sidebar-logo-img');
             const sLogo = currentLogoBase64 || (logoElement.style.display !== 'none' ? logoElement.src : '');
             const pColor = document.getElementById('set-color-primary').value;
@@ -951,6 +1188,9 @@
         // --- BRANDING LOGIC END ---
 
         function showSection(id) {
+            // Store current section in sessionStorage to prevent jumping back to roster
+            sessionStorage.setItem('currentSection', id);
+            
             ['roster', 'library', 'stories', 'reports', 'settings'].forEach(s => {
                 const section = document.getElementById(`sec-${s}`);
                 const button = document.getElementById(`btn-${s}`);
@@ -979,7 +1219,6 @@
             textArea.readOnly = true;
             
             try {
-                // Use main process to handle PDF/OCR with proper paths
                 const result = await window.api.scanPdf(file.path);
                 
                 if (result.success) {
@@ -1011,39 +1250,173 @@
             badge.classList.toggle('hidden', words === 0);
         }
 
+        // --- ROSTER WITH FILTERS AND PARENT FORM ---
+
         async function loadRoster() {
             try {
-                const students = await window.api.getAllStudents();
-                const results = await window.api.getAllResults();
-                const tbody = document.getElementById('rt');
-                tbody.innerHTML = '';
+                allStudents = await window.api.getAllStudents();
+                allResults = await window.api.getAllResults();
                 
-                if (!students || students.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">No students found. Add students using the form above.</td></tr>';
-                    return;
-                }
-                
-                students.forEach(s => {
-                    const hasTested = results.some(r => r.email === s.email);
-                    const statusDot = hasTested ? '<span class="dot dot-green"></span>' : '<span class="dot dot-grey"></span>';
-                    
-                    const row = `<tr>
-                        <td>${statusDot}</td>
-                        <td>${s.name || 'N/A'}</td>
-                        <td>${s.email || 'N/A'}</td>
-                        <td>${s.grade || 'N/A'}</td>
-                        <td>${s.class_id || 'N/A'}</td>
-                        <td>${s.language || 'English'}</td>
-                        <td class="no-print">
-                            <button class="btn btn-accent btn-small" onclick="editS('${s.email}')">Edit</button>
-                            <button class="btn btn-danger btn-small" onclick="delS('${s.email}')">Delete</button>
-                        </td>
-                    </tr>`;
-                    tbody.innerHTML += row;
-                });
+                populateFilterDropdowns();
+                filterRoster();
             } catch (err) {
                 console.error("Failed to load roster:", err);
                 document.getElementById('rt').innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #dc2626;">Error loading students. Check console.</td></tr>';
+            }
+        }
+
+        function populateFilterDropdowns() {
+            const gradeSelect = document.getElementById('filter-grade');
+            const classSelect = document.getElementById('filter-class');
+            
+            const grades = [...new Set(allStudents.map(s => s.grade))].filter(g => g).sort((a, b) => a - b);
+            const classes = [...new Set(allStudents.map(s => s.class_id))].filter(c => c).sort();
+            
+            gradeSelect.innerHTML = '<option value="">All Grades</option>';
+            grades.forEach(g => {
+                gradeSelect.innerHTML += `<option value="${g}">Grade ${g}</option>`;
+            });
+            
+            classSelect.innerHTML = '<option value="">All Classes</option>';
+            classes.forEach(c => {
+                classSelect.innerHTML += `<option value="${c}">Class ${c}</option>`;
+            });
+        }
+
+        function filterRoster() {
+            const gradeFilter = document.getElementById('filter-grade').value;
+            const classFilter = document.getElementById('filter-class').value;
+            
+            let filtered = allStudents;
+            if (gradeFilter) filtered = filtered.filter(s => s.grade === gradeFilter);
+            if (classFilter) filtered = filtered.filter(s => s.class_id === classFilter);
+            
+            renderRosterTable(filtered);
+        }
+
+        function clearFilters() {
+            document.getElementById('filter-grade').value = '';
+            document.getElementById('filter-class').value = '';
+            filterRoster();
+        }
+
+        function renderRosterTable(students) {
+            const tbody = document.getElementById('rt');
+            tbody.innerHTML = '';
+            
+            if (!students || students.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #64748b;">No students found. Add students using the form above.</td></tr>';
+                return;
+            }
+            
+            students.forEach(s => {
+                const hasTested = allResults.some(r => r.email === s.email);
+                const statusDot = hasTested ? '<span class="dot dot-green"></span>' : '<span class="dot dot-grey"></span>';
+                
+                const row = `<tr style="cursor: pointer;" onclick="openStudentModal('${s.email}')">
+                    <td>${statusDot}</td>
+                    <td><strong>${s.name || 'N/A'}</strong></td>
+                    <td>${s.email || 'N/A'}</td>
+                    <td>${s.grade || 'N/A'}</td>
+                    <td>${s.class_id || 'N/A'}</td>
+                    <td>${s.language || 'English'}</td>
+                    <td class="no-print" onclick="event.stopPropagation()">
+                        <button class="btn btn-accent btn-small" onclick="editS('${s.email}')">Edit</button>
+                        <button class="btn btn-danger btn-small" onclick="delS('${s.email}')">Delete</button>
+                    </td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        }
+
+        async function openStudentModal(email) {
+            const student = allStudents.find(s => s.email === email);
+            if (!student) return;
+            
+            const badges = await window.api.getStudentBadges(email);
+            
+            const content = document.getElementById('student-details-content');
+            content.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold;">Student Name</label>
+                        <div style="font-size: 16px; font-weight: 600;">${student.name}</div>
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold;">Email</label>
+                        <div>${student.email}</div>
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold;">Grade</label>
+                        <div>${student.grade || '--'}</div>
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold;">Class</label>
+                        <div>${student.class_id || '--'}</div>
+                    </div>
+                </div>
+                
+                <h4 style="margin: 20px 0 15px 0; color: var(--dark); border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Parent/Guardian Details</h4>
+                <div class="form-grid">
+                    <div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold;">Parent Name</label>
+                        <input id="modal-parent-name" value="${student.parent_name || ''}" placeholder="Parent Name">
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold;">Parent Surname</label>
+                        <input id="modal-parent-surname" value="${student.parent_surname || ''}" placeholder="Parent Surname">
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold;">Parent Email (D6)</label>
+                        <input id="modal-parent-email" value="${student.parent_email || ''}" placeholder="parent@email.com">
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; color: #64748b; font-weight: bold;">Parent Phone</label>
+                        <input id="modal-parent-phone" value="${student.parent_phone || ''}" placeholder="Phone Number">
+                    </div>
+                </div>
+                <input type="hidden" id="modal-student-email" value="${student.email}">
+            `;
+            
+            const trophiesContainer = document.getElementById('student-trophies');
+            if (badges.length > 0) {
+                trophiesContainer.innerHTML = badges.map(b => `
+                    <div class="badge-item" title="${b.criteria_met}">
+                        🏆 ${b.badge_name}
+                    </div>
+                `).join('');
+            } else {
+                trophiesContainer.innerHTML = '<p style="color: #92400e; margin: 0;">No badges earned yet</p>';
+            }
+            
+            document.getElementById('student-modal').style.display = 'flex';
+        }
+
+        function closeStudentModal() {
+            document.getElementById('student-modal').style.display = 'none';
+        }
+
+        async function saveParentDetails() {
+            const email = document.getElementById('modal-student-email').value;
+            const student = allStudents.find(s => s.email === email);
+            
+            if (!student) return;
+            
+            const updatedStudent = {
+                ...student,
+                parent_name: document.getElementById('modal-parent-name').value,
+                parent_surname: document.getElementById('modal-parent-surname').value,
+                parent_email: document.getElementById('modal-parent-email').value,
+                parent_phone: document.getElementById('modal-parent-phone').value
+            };
+            
+            try {
+                await window.api.saveStudent(updatedStudent);
+                alert('Parent details saved successfully!');
+                closeStudentModal();
+                loadRoster();
+            } catch (err) {
+                alert('Error saving parent details: ' + err.message);
             }
         }
 
@@ -1053,7 +1426,11 @@
                 email: document.getElementById('se').value.trim().toLowerCase(),
                 grade: document.getElementById('sg').value.trim(),
                 class_id: document.getElementById('sc').value.trim(),
-                language: document.getElementById('sl').value
+                language: document.getElementById('sl').value,
+                parent_name: document.getElementById('parent-name')?.value || '',
+                parent_surname: document.getElementById('parent-surname')?.value || '',
+                parent_email: document.getElementById('parent-email')?.value || '',
+                parent_phone: document.getElementById('parent-phone')?.value || ''
             };
             if (!s.name || !s.email) return alert("Fill Name and Email.");
             await window.api.saveStudent(s);
@@ -1071,14 +1448,21 @@
         }
 
         async function editS(email) {
-            const students = await window.api.getAllStudents();
-            const s = students.find(x => x.email === email);
+            const s = allStudents.find(x => x.email === email);
             if (!s) return;
             document.getElementById('sn').value = s.name;
             document.getElementById('se').value = s.email;
             document.getElementById('sg').value = s.grade;
             document.getElementById('sc').value = s.class_id;
             document.getElementById('sl').value = s.language;
+            
+            // Show and populate parent form
+            document.getElementById('parent-form').classList.remove('hidden');
+            document.getElementById('parent-name').value = s.parent_name || '';
+            document.getElementById('parent-surname').value = s.parent_surname || '';
+            document.getElementById('parent-email').value = s.parent_email || '';
+            document.getElementById('parent-phone').value = s.parent_phone || '';
+            
             document.getElementById('roster-btn').innerText = "Update Student";
             document.getElementById('roster-form-title').innerText = "Edit Student";
             document.getElementById('cancel-edit').classList.remove('hidden');
@@ -1090,6 +1474,7 @@
             document.getElementById('se').value = '';
             document.getElementById('sg').value = '';
             document.getElementById('sc').value = '';
+            document.getElementById('parent-form').classList.add('hidden');
             document.getElementById('roster-btn').innerText = "Add Student";
             document.getElementById('roster-form-title').innerText = "Add New Student";
             document.getElementById('cancel-edit').classList.add('hidden');
@@ -1110,7 +1495,17 @@
                 for (let row of rows) {
                     const cols = row.split(',').map(s => s.trim().replace(/"/g, ''));
                     if (cols[0] && cols[1]) {
-                        await window.api.saveStudent({ name: cols[0], email: cols[1], grade: cols[2], class_id: cols[3], language: cols[4] });
+                        await window.api.saveStudent({ 
+                            name: cols[0], 
+                            email: cols[1], 
+                            grade: cols[2], 
+                            class_id: cols[3], 
+                            language: cols[4],
+                            parent_name: cols[5] || '',
+                            parent_surname: cols[6] || '',
+                            parent_email: cols[7] || '',
+                            parent_phone: cols[8] || ''
+                        });
                     }
                 }
                 loadRoster();
@@ -1119,22 +1514,32 @@
             reader.readAsText(file);
         }
 
+        // --- LIBRARY WITH EDIT AND DIFFICULTY ---
+
         async function loadLibrary() {
-            const stories = await window.api.getStories();
+            allStories = await window.api.getStories();
             const filter = document.getElementById('lib-filter').value;
             const tbody = document.getElementById('library-body');
             tbody.innerHTML = '';
-            stories.forEach(s => {
+            
+            allStories.forEach(s => {
                 if (filter !== 'All' && s.language !== filter) return;
+                
                 const activeLabel = s.is_active ? '✅ Active' : '⚪ Inactive';
+                const diffClass = `difficulty-${(s.difficulty || 'medium').toLowerCase()}`;
+                const diffBadge = `<span class="difficulty-badge ${diffClass}">${s.difficulty || 'Medium'}</span>`;
+                
                 const row = `<tr>
                     <td>${s.id_string}</td>
-                    <td>${s.title}</td>
+                    <td><strong>${s.title}</strong></td>
                     <td>${s.language}</td>
+                    <td>${s.grade_level || '--'}</td>
+                    <td>${diffBadge}</td>
                     <td>${s.words}</td>
                     <td>${activeLabel}</td>
                     <td>
-                        <button class="btn btn-primary btn-small" onclick="setActive('${s.id_string}')">Set Active</button>
+                        <button class="btn btn-accent btn-small" onclick="editStory('${s.id_string}')">Edit</button>
+                        <button class="btn btn-primary btn-small" onclick="setActive('${s.id_string}', '${s.grade_level}')">Set Active</button>
                         <button class="btn btn-danger btn-small" onclick="delStory('${s.id_string}')">Delete</button>
                     </td>
                 </tr>`;
@@ -1142,8 +1547,88 @@
             });
         }
 
-        async function setActive(id) {
-            await window.api.setActiveStory(id);
+        async function editStory(id_string) {
+            const story = allStories.find(s => s.id_string === id_string);
+            if (!story) return;
+            
+            document.getElementById('sid').value = story.id_string;
+            document.getElementById('st').value = story.title;
+            document.getElementById('scon').value = story.content;
+            document.getElementById('slang').value = story.language;
+            document.getElementById('sgrade').value = story.grade_level || '8';
+            document.getElementById('sdifficulty').value = story.difficulty || 'Medium';
+            
+            // Load questions
+            questionData = [];
+            document.getElementById('q-container').innerHTML = '';
+            
+            if (story.questions) {
+                try {
+                    const questions = typeof story.questions === 'string' ? JSON.parse(story.questions) : story.questions;
+                    questions.forEach(q => {
+                        addQWithData(q.q, q.options);
+                    });
+                } catch (e) {
+                    console.error('Error parsing questions:', e);
+                }
+            }
+            
+            document.getElementById('cancel-story-edit').classList.remove('hidden');
+            currentEditStoryId = id_string;
+            
+            // Switch to stories section
+            showSection('stories');
+            updateStats();
+        }
+
+        function addQWithData(questionText, options) {
+    const qId = Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const qObj = { id: qId, optCount: options.length };
+    questionData.push(qObj);
+
+    const container = document.getElementById('q-container');
+    const div = document.createElement('div');
+    div.className = "q-block";
+    div.id = `q-block-${qId}`;
+    div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b style="color:var(--dark)">Question</b>
+            <button class="btn btn-danger btn-small" onclick="removeQ('${qId}')">Remove Question</button>
+        </div>
+        <input id="q-text-${qId}" placeholder="Enter the question here..." value="${questionText.replace(/"/g, '&quot;')}">
+        <div class="opt-container" id="opt-container-${qId}">
+            <span class="correct-tag">Correct Option (Top)</span>
+        </div>
+        <button class="btn btn-small btn-accent" style="margin-top:10px; width:100%;" onclick="addOption('${qId}')">+ Add Distractor Option</button>
+    `;
+    container.appendChild(div);
+    
+    options.forEach((opt, idx) => {
+        const optContainer = document.getElementById(`opt-container-${qId}`);
+        const optDiv = document.createElement('div');
+        optDiv.className = "opt-row";
+        optDiv.id = `opt-row-${qId}-${idx}`;
+        optDiv.innerHTML = `
+            <input id="q-opt-${qId}-${idx}" placeholder="${idx === 0 ? 'Correct answer' : 'Distractor answer'}" value="${opt.replace(/"/g, '&quot;')}" style="margin-bottom:0;">
+            ${idx > 0 ? `<button class="btn btn-danger btn-small" onclick="removeOption('${qId}', ${idx})">×</button>` : ''}
+        `;
+        optContainer.appendChild(optDiv);
+    });
+}
+
+        function cancelStoryEdit() {
+            document.getElementById('sid').value = '';
+            document.getElementById('st').value = '';
+            document.getElementById('scon').value = '';
+            document.getElementById('q-container').innerHTML = '';
+            document.getElementById('cancel-story-edit').classList.add('hidden');
+            questionData = [];
+            currentEditStoryId = null;
+            updateStats();
+        }
+
+        async function setActive(id, grade) {
+            await window.api.setActiveStory(id, grade);
             loadLibrary();
         }
 
@@ -1155,52 +1640,54 @@
         }
 
         function addQ() {
-            const qId = Date.now();
-            const qObj = { id: qId, optCount: 0 };
-            questionData.push(qObj);
+    const qId = Date.now() + '_' + Math.floor(Math.random() * 1000);
+    const qObj = { id: qId, optCount: 0 };
+    questionData.push(qObj);
 
-            const container = document.getElementById('q-container');
-            const div = document.createElement('div');
-            div.className = "q-block";
-            div.id = `q-block-${qId}`;
-            div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <b style="color:var(--dark)">Question</b>
-                    <button class="btn btn-danger btn-small" onclick="removeQ(${qId})">Remove Question</button>
-                </div>
-                <input id="q-text-${qId}" placeholder="Enter the question here...">
-                <div class="opt-container" id="opt-container-${qId}">
-                    <span class="correct-tag">Correct Option (Top)</span>
-                </div>
-                <button class="btn btn-small btn-accent" style="margin-top:10px; width:100%;" onclick="addOption(${qId})">+ Add Distractor Option</button>
-            `;
-            container.appendChild(div);
-            addOption(qId);
-        }
+    const container = document.getElementById('q-container');
+    const div = document.createElement('div');
+    div.className = "q-block";
+    div.id = `q-block-${qId}`;
+    div.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b style="color:var(--dark)">Question</b>
+            <button class="btn btn-danger btn-small" onclick="removeQ('${qId}')">Remove Question</button>
+        </div>
+        <input id="q-text-${qId}" placeholder="Enter the question here...">
+        <div class="opt-container" id="opt-container-${qId}">
+            <span class="correct-tag">Correct Option (Top)</span>
+        </div>
+        <button class="btn btn-small btn-accent" style="margin-top:10px; width:100%;" onclick="addOption('${qId}')">+ Add Distractor Option</button>
+    `;
+    container.appendChild(div);
+    addOption(qId);
+}
 
         function addOption(qId) {
-            const q = questionData.find(x => x.id === qId);
-            const optIndex = q.optCount++;
-            const container = document.getElementById(`opt-container-${qId}`);
-            
-            const div = document.createElement('div');
-            div.className = "opt-row";
-            div.id = `opt-row-${qId}-${optIndex}`;
-            div.innerHTML = `
-                <input id="q-opt-${qId}-${optIndex}" placeholder="${optIndex === 0 ? 'Correct answer' : 'Distractor answer'}" style="margin-bottom:0;">
-                ${optIndex > 0 ? `<button class="btn btn-danger btn-small" onclick="removeOption(${qId}, ${optIndex})">×</button>` : ''}
-            `;
-            container.appendChild(div);
-        }
+    const q = questionData.find(x => x.id === qId);
+    const optIndex = q.optCount++;
+    const container = document.getElementById(`opt-container-${qId}`);
+    
+    const div = document.createElement('div');
+    div.className = "opt-row";
+    div.id = `opt-row-${qId}-${optIndex}`;
+    div.innerHTML = `
+        <input id="q-opt-${qId}-${optIndex}" placeholder="${optIndex === 0 ? 'Correct answer' : 'Distractor answer'}" style="margin-bottom:0;">
+        ${optIndex > 0 ? `<button class="btn btn-danger btn-small" onclick="removeOption('${qId}', ${optIndex})">×</button>` : ''}
+    `;
+    container.appendChild(div);
+}
 
         function removeOption(qId, optIndex) {
-            document.getElementById(`opt-row-${qId}-${optIndex}`).remove();
-        }
+    const row = document.getElementById(`opt-row-${qId}-${optIndex}`);
+    if (row) row.remove();
+}
 
         function removeQ(qId) {
-            document.getElementById(`q-block-${qId}`).remove();
-            questionData = questionData.filter(x => x.id !== qId);
-        }
+    const block = document.getElementById(`q-block-${qId}`);
+    if (block) block.remove();
+    questionData = questionData.filter(x => x.id !== qId);
+}
 
         async function saveFullStory() {
             const formattedQuestions = [];
@@ -1221,23 +1708,30 @@
                 title: document.getElementById('st').value.trim(),
                 content: document.getElementById('scon').value.trim(),
                 language: document.getElementById('slang').value,
+                grade_level: document.getElementById('sgrade').value,
+                difficulty: document.getElementById('sdifficulty').value,
                 words: document.getElementById('scon').value.trim().split(/\s+/).length,
                 questions: JSON.stringify(formattedQuestions)
             };
+            
             if (!s.id_string || !s.title || !s.content) return alert("Missing data.");
+            
             await window.api.saveStory(s);
-            alert("Story saved with MCQ Quiz!");
-            location.reload();
+            alert("Story saved to Library!");
+            cancelStoryEdit();
+            showSection('library');
         }
 
         function switchTab(tab) {
             document.getElementById('sub-branding').classList.add('hidden');
             document.getElementById('sub-users').classList.add('hidden');
             document.getElementById('sub-updates').classList.add('hidden');
+            document.getElementById('sub-backup').classList.add('hidden');
             
             document.getElementById('tab-brand-link').classList.remove('active');
             document.getElementById('tab-user-link').classList.remove('active');
             document.getElementById('tab-update-link').classList.remove('active');
+            document.getElementById('tab-backup-link').classList.remove('active');
             
             if (tab === 'branding') {
                 document.getElementById('sub-branding').classList.remove('hidden');
@@ -1250,6 +1744,9 @@
                 document.getElementById('sub-updates').classList.remove('hidden');
                 document.getElementById('tab-update-link').classList.add('active');
                 loadVersionInfo();
+            } else if (tab === 'backup') {
+                document.getElementById('sub-backup').classList.remove('hidden');
+                document.getElementById('tab-backup-link').classList.add('active');
             }
         }
 
@@ -1258,26 +1755,46 @@
             const tbody = document.getElementById('teacher-table-body');
             tbody.innerHTML = '';
             teachers.forEach(t => {
+                const isSuperUser = t.email === 'readerpro@admin.co.za';
+                const deleteBtn = isSuperUser ? 
+                    '<span style="color: #94a3b8; font-size: 12px;">Protected</span>' : 
+                    `<button class="btn btn-danger btn-small" onclick="delTeacher('${t.email}')">Remove</button>`;
+                
                 tbody.innerHTML += `<tr>
                     <td>${t.name}</td>
                     <td>${t.email}</td>
-                    <td>Staff</td>
-                    <td><button class="btn btn-danger btn-small" onclick="delTeacher('${t.email}')">Remove</button></td>
+                    <td>${isSuperUser ? 'Super Admin' : 'Staff'}</td>
+                    <td>${deleteBtn}</td>
                 </tr>`;
             });
         }
 
         async function delTeacher(email) {
+            if (email === 'readerpro@admin.co.za') {
+                alert('Cannot delete the super user account!');
+                return;
+            }
             if (confirm("Remove teacher?")) {
-                await window.api.deleteTeacher(email);
-                loadTeachers();
+                const result = await window.api.deleteTeacher(email);
+                if (result.success) {
+                    loadTeachers();
+                } else {
+                    alert(result.message || 'Error deleting teacher');
+                }
             }
         }
 
         async function addTeacher() {
-            const t = { name: document.getElementById('tn').value, email: document.getElementById('te').value, password: document.getElementById('tp').value };
+            const t = { 
+                name: document.getElementById('tn').value, 
+                email: document.getElementById('te').value, 
+                password: document.getElementById('tp').value 
+            };
             await window.api.saveTeacher(t);
-            location.reload();
+            document.getElementById('tn').value = '';
+            document.getElementById('te').value = '';
+            document.getElementById('tp').value = '';
+            loadTeachers();
         }
         
         async function exportTeachers() {
@@ -1305,6 +1822,16 @@
                 alert("Teacher Import Complete");
             };
             reader.readAsText(file);
+        }
+
+        // --- DATABASE BACKUP ---
+        async function exportDatabaseBackup() {
+            const result = await window.api.exportDatabaseBackup();
+            if (result.success) {
+                alert(`Database backup saved to:\n${result.path}`);
+            } else {
+                alert('Backup failed: ' + (result.message || 'Unknown error'));
+            }
         }
 
         // --- REPORTS SECTION LOGIC ---
@@ -1534,17 +2061,23 @@
             printWindow.document.write('<html><head><title>Progress Reports - ' + title + '</title>');
             printWindow.document.write('<style>');
             printWindow.document.write(`
-                body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
-                .report-page { page-break-after: always; padding: 40px; }
+                @page { size: A4 portrait; margin: 15mm; }
+                body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+                .report-page { 
+                    page-break-after: always; 
+                    padding: 20px; 
+                    width: 100%; 
+                    box-sizing: border-box;
+                }
                 .report-page:last-child { page-break-after: auto; }
-                .header { background: #001a3d; color: white; padding: 30px; display: flex; justify-content: space-between; }
-                .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 20px; background: #f8fafc; }
-                .stat-box { background: white; padding: 15px; border-radius: 8px; text-align: center; border-top: 3px solid #004a99; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th { background: #f1f5f9; padding: 10px; text-align: left; font-size: 11px; text-transform: uppercase; }
-                td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
-                .signatures { display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; }
-                .signature-line { flex: 1; margin: 0 20px; border-top: 1px solid #000; padding-top: 10px; text-align: center; }
+                .header { background: #001a3d; color: white; padding: 20px; display: flex; justify-content: space-between; }
+                .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 15px; background: #f8fafc; }
+                .stat-box { background: white; padding: 10px; border-radius: 8px; text-align: center; border-top: 3px solid #004a99; }
+                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                th { background: #f1f5f9; padding: 8px; text-align: left; font-size: 11px; text-transform: uppercase; }
+                td { padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+                .signatures { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 15px; }
+                .signature-line { flex: 1; margin: 0 15px; border-top: 1px solid #000; padding-top: 8px; text-align: center; font-size: 12px; }
             `);
             printWindow.document.write('</style></head><body>');
             
@@ -1561,19 +2094,19 @@
                     <div class="report-page">
                         <div class="header">
                             <div>
-                                <h1 style="margin: 0;">PROGRESS REPORT</h1>
-                                <p style="margin: 5px 0 0 0; opacity: 0.8;">${student.name}</p>
+                                <h1 style="margin: 0; font-size: 22px;">PROGRESS REPORT</h1>
+                                <p style="margin: 5px 0 0 0; opacity: 0.8; font-size: 12px;">${student.name}</p>
                             </div>
                             <div style="text-align: right;">
-                                <p style="margin: 0; font-size: 12px;">Grade ${student.grade || '--'} | Class ${student.class_id || '--'}</p>
-                                <p style="margin: 5px 0 0 0; font-size: 12px;">${new Date().toLocaleDateString()}</p>
+                                <p style="margin: 0; font-size: 11px;">Grade ${student.grade || '--'} | Class ${student.class_id || '--'}</p>
+                                <p style="margin: 5px 0 0 0; font-size: 11px;">${new Date().toLocaleDateString()}</p>
                             </div>
                         </div>
                         <div class="stats">
-                            <div class="stat-box"><div style="font-size: 10px; color: #64748b;">Baseline</div><div style="font-size: 18px; font-weight: bold;">${baseline}</div></div>
-                            <div class="stat-box"><div style="font-size: 10px; color: #64748b;">Avg Speed</div><div style="font-size: 18px; font-weight: bold;">${avgSpeed} WPM</div></div>
-                            <div class="stat-box"><div style="font-size: 10px; color: #64748b;">Tests Taken</div><div style="font-size: 18px; font-weight: bold;">${results.length}</div></div>
-                            <div class="stat-box"><div style="font-size: 10px; color: #64748b;">Grade</div><div style="font-size: 18px; font-weight: bold;">${student.grade || '--'}</div></div>
+                            <div class="stat-box"><div style="font-size: 9px; color: #64748b;">Baseline</div><div style="font-size: 16px; font-weight: bold;">${baseline}</div></div>
+                            <div class="stat-box"><div style="font-size: 9px; color: #64748b;">Avg Speed</div><div style="font-size: 16px; font-weight: bold;">${avgSpeed} WPM</div></div>
+                            <div class="stat-box"><div style="font-size: 9px; color: #64748b;">Tests Taken</div><div style="font-size: 16px; font-weight: bold;">${results.length}</div></div>
+                            <div class="stat-box"><div style="font-size: 9px; color: #64748b;">Grade</div><div style="font-size: 16px; font-weight: bold;">${student.grade || '--'}</div></div>
                         </div>
                         <table>
                             <thead><tr><th>Date</th><th>Story</th><th>Speed</th><th>Accuracy</th></tr></thead>
@@ -1733,15 +2266,18 @@
             }
         }
 
-        async function openReleasePage() {
-            await window.api.openReleasePage();
-        }
-
         window.onload = async () => {
             document.getElementById('current-date').innerText = new Date().toLocaleDateString();
             await applyBranding();
-            allStudents = await window.api.getAllStudents();
-            loadRoster();
+            
+            // Check for stored section
+            const storedSection = sessionStorage.getItem('currentSection');
+            if (storedSection) {
+                showSection(storedSection);
+            } else {
+                allStudents = await window.api.getAllStudents();
+                loadRoster();
+            }
         };
     </script>
 </body>
