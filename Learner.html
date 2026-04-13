@@ -70,6 +70,9 @@
         .icon-warning::before { content: "⚠️"; margin-right: 8px; }
         .icon-exclamation::before { content: "❗"; margin-right: 8px; }
         .icon-heart-pulse::before { content: "💓"; margin-right: 8px; }
+        .icon-trophy::before { content: "🏆"; margin-right: 8px; }
+        .icon-star::before { content: "⭐"; margin-right: 8px; }
+        .icon-medal::before { content: "🥇"; margin-right: 8px; }
 
         :root {
             --primary: #004a99;
@@ -484,6 +487,83 @@
         .epilepsy-safe #speed-flash-display {
             background: #f0f4f8 !important;
         }
+
+        /* BADGE STYLES */
+        .badge-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .badge-item {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .badge-item.locked {
+            background: #e2e8f0;
+            color: #94a3b8;
+        }
+
+        .badge-item img {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.badge-item.locked img {
+    filter: grayscale(100%) opacity(0.4);
+}
+
+        .trophy-case {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 16px;
+            padding: 25px;
+            margin-top: 20px;
+        }
+
+        .trophy-case h3 {
+            color: #92400e;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .streak-display {
+            background: linear-gradient(135deg, #fecaca 0%, #fca5a5 100%);
+            color: #991b1b;
+            padding: 15px 25px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .wpm-quality {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .wpm-excellent { background: #dcfce7; color: #166534; }
+        .wpm-good { background: #dbeafe; color: #1e40af; }
+        .wpm-average { background: #fef3c7; color: #92400e; }
+        .wpm-needs-improvement { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
@@ -498,25 +578,28 @@
 
         <div style="flex: 1; padding: 10px;">
             <div id="nav-home" class="nav-item active" onclick="showSection('home-section')">
-                <span class="icon-home"></span> Dashboard
+                <span class="icon-home"></span> <span data-i18n="dashboard">Dashboard</span>
             </div>
             <div id="nav-assignment" class="nav-item" onclick="showSection('assignment-section')">
-                <span class="icon-book"></span> My Assignment
+                <span class="icon-book"></span> <span data-i18n="myAssignment">My Assignment</span>
             </div>
             <div id="nav-performance" class="nav-item" onclick="showSection('performance-section')">
-                <span class="icon-chart"></span> Performance
+                <span class="icon-chart"></span> <span data-i18n="performance">Performance</span>
             </div>
             <div id="nav-games" class="nav-item" onclick="showSection('games-section')">
-                <span class="icon-game"></span> Word Games
+                <span class="icon-game"></span> <span data-i18n="wordGames">Word Games</span>
+            </div>
+            <div id="nav-badges" class="nav-item" onclick="showSection('badges-section')">
+                <span class="icon-trophy"></span> <span data-i18n="myBadges">My Badges</span>
             </div>
         </div>
 
         <div id="sidebar-footer" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;">
             <div id="nav-settings" class="nav-item" onclick="showSection('settings-section')">
-                <span class="icon-cog"></span> Settings
+                <span class="icon-cog"></span> <span data-i18n="settings">Settings</span>
             </div>
             <div class="nav-item" onclick="window.api.switchPage('index.html')" style="color: #fda4af; margin-top: 5px;">
-                <span class="icon-signout"></span> Logout
+                <span class="icon-signout"></span> <span data-i18n="logout">Logout</span>
             </div>
         </div>
     </div>
@@ -528,6 +611,9 @@
                 <div>
                     <h1 id="greeting" style="margin:0; color: var(--dark);">Hello!</h1>
                     <p id="student-info" style="color: #64748b; margin-top: 5px;"></p>
+                    <div id="streak-display" class="streak-display" style="display: none;">
+                        <span>🔥</span> <span id="streak-text">0 day streak</span>
+                    </div>
                 </div>
                 <div class="avatar" id="user-initials">?</div>
             </div>
@@ -535,86 +621,94 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="card" onclick="showSection('assignment-section')" style="cursor:pointer;">
                     <div class="card-accent" style="background: var(--primary);"></div>
-                    <h3>Daily Lessons</h3>
-                    <p>Click here to start your 3-step assignment.</p>
+                    <h3 data-i18n="dailyLessons">Daily Lessons</h3>
+                    <p data-i18n="startAssignment">Click here to start your 3-step assignment.</p>
                 </div>
 
                 <div class="card">
                     <div class="card-accent" style="background: var(--accent);"></div>
                     <h3 id="last-wpm">-- WPM</h3>
-                    <p>Accuracy: <span id="last-acc">--%</span></p>
+                    <p><span data-i18n="accuracy">Accuracy</span>: <span id="last-acc">--%</span></p>
+                    <div id="wpm-quality-badge" style="margin-top: 10px;"></div>
+                </div>
+            </div>
+
+            <div class="trophy-case" style="margin-top: 30px;">
+                <h3><span class="icon-trophy"></span> <span data-i18n="recentBadges">Recent Badges</span></h3>
+                <div id="recent-badges" class="badge-container">
+                    <p style="color: #92400e; width: 100%; text-align: center;" data-i18n="noBadgesYet">Complete assignments to earn badges!</p>
                 </div>
             </div>
         </div>
 
         <!-- ASSIGNMENT SECTION -->
         <div id="assignment-section" class="content-section" style="display:none;">
-            <h1 style="color: var(--dark); margin-bottom: 20px;">Assignment</h1>
+            <h1 style="color: var(--dark); margin-bottom: 20px;" data-i18n="assignment">Assignment</h1>
             
             <!-- STEP 1 -->
             <div id="step1-card" class="card" style="text-align: center; max-width: 600px; margin: 0 auto;">
                 <div class="card-accent" style="background: var(--accent); width: 100px; margin: 0 auto 15px auto;"></div>
-                <span style="font-weight: bold; color: var(--accent);">STEP 1</span>
-                <h2>Focus Words</h2>
-                <p>Practice these words out loud.</p>
+                <span style="font-weight: bold; color: var(--accent);" data-i18n="step1">STEP 1</span>
+                <h2 data-i18n="focusWords">Focus Words</h2>
+                <p data-i18n="practiceWords">Practice these words out loud.</p>
                 <div id="focus-words-list" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin: 20px 0;">
                 </div>
-                <button class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:15px; font-weight:bold; cursor:pointer;" onclick="goToStep(2)">Next Step <span class="icon-arrow-right" style="margin-left: 5px;"></span></button>
+                <button class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:15px; font-weight:bold; cursor:pointer;" onclick="goToStep(2)"><span data-i18n="nextStep">Next Step</span> <span class="icon-arrow-right" style="margin-left: 5px;"></span></button>
             </div>
 
             <!-- STEP 2 -->
             <div id="step2-card" class="card" style="display:none; text-align: center; max-width: 600px; margin: 0 auto;">
                 <div class="card-accent" style="background: var(--primary); width: 100px; margin: 0 auto 15px auto;"></div>
-                <span style="font-weight: bold; color: var(--primary);">STEP 2</span>
-                <h2>30-Second Speed Drill</h2>
+                <span style="font-weight: bold; color: var(--primary);" data-i18n="step2">STEP 2</span>
+                <h2 data-i18n="speedDrill">30-Second Speed Drill</h2>
                 
                 <div id="speed-timer" style="font-size: 3rem; font-weight: bold; margin: 10px;">30s</div>
                 
                 <div id="speed-flash-display" style="height: 150px; display: flex; align-items: center; justify-content: center; background: #f9f9f9; border-radius: 10px; margin-bottom: 20px;">
-                    <span style="color: #999;">Get ready...</span>
+                    <span style="color: #999;" data-i18n="getReady">Get ready...</span>
                 </div>
 
                 <div id="hidden-story-text" style="display: none;"></div>
 
-                <button id="start-speed-btn" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:15px; font-weight:bold; cursor:pointer;" onclick="startSpeedDrill()">Start Speed Drill</button>
+                <button id="start-speed-btn" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:15px; font-weight:bold; cursor:pointer;" onclick="startSpeedDrill()"><span data-i18n="startSpeedDrill">Start Speed Drill</span></button>
             </div>
 
             <!-- STEP 3 -->
             <div id="step3-card" class="card" style="display:none; text-align: center; max-width: 800px; margin: 0 auto;">
                 <div class="card-accent" style="background: var(--accent); width: 100px; margin: 0 auto 15px auto;"></div>
-                <span style="font-weight: bold; color: var(--accent);">STEP 3</span>
+                <span style="font-weight: bold; color: var(--accent);" data-i18n="step3">STEP 3</span>
                 
                 <div id="pre-read-state">
-                    <h2>Final Assessment</h2>
-                    <p style="font-size: 1.1rem; color: #64748b; margin-bottom: 25px;">
+                    <h2 data-i18n="finalAssessment">Final Assessment</h2>
+                    <p style="font-size: 1.1rem; color: #64748b; margin-bottom: 25px;" data-i18n="storyHidden">
                         The story is hidden. Click the button below to reveal the text and start your timer. 
                         Read as fast and accurately as you can!
                     </p>
                     <button id="start-reading-btn" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:20px; font-weight:bold; cursor:pointer; font-size: 1.2rem;" onclick="startFinalAssessment()">
-                        <span class="icon-play"></span> START READING NOW
+                        <span class="icon-play"></span> <span data-i18n="startReading">START READING NOW</span>
                     </button>
                 </div>
 
                 <div id="reading-state" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <h2 style="margin:0;">Read Out Loud</h2>
+                        <h2 style="margin:0;" data-i18n="readOutLoud">Read Out Loud</h2>
                         <div id="live-timer" style="font-size: 1.5rem; font-weight: bold; color: var(--accent); background: #fff1f2; padding: 5px 15px; border-radius: 10px; border: 1px solid var(--accent);">0s</div>
                     </div>
                     
                     <div id="assessment-text-box" style="text-align:left; padding:25px; background:#fff; border:2px solid var(--primary); border-radius:15px; margin-bottom:20px; font-size: 1.4rem; line-height: 1.8; color: #1e293b;"></div>
                     
                     <button id="finish-reading-btn" class="card" style="background: var(--accent); color:white; border:none; width:100%; padding:20px; font-weight:bold; border-radius:15px; cursor:pointer;" onclick="checkCheating()">
-                        <span class="icon-question"></span> I AM FINISHED - TAKE QUIZ
+                        <span class="icon-question"></span> <span data-i18n="iAmFinished">I AM FINISHED - TAKE QUIZ</span>
                     </button>
                 </div>
 
                 <div id="quiz-state" style="display: none; text-align: left;">
-                    <h3 style="color: var(--primary); text-align: center;"><span class="icon-pen"></span> Quick Check</h3>
-                    <p style="text-align: center;">Answer these questions about the story:</p>
+                    <h3 style="color: var(--primary); text-align: center;"><span class="icon-pen"></span> <span data-i18n="quickCheck">Quick Check</span></h3>
+                    <p style="text-align: center;" data-i18n="answerQuestions">Answer these questions about the story:</p>
                     <hr style="border:0; border-top:1px solid #eee; margin: 20px 0;">
                     <div id="quiz-container" style="margin-top: 20px;">
                     </div>
-                    <button onclick="submitFinalResults()" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:20px; font-weight:bold; margin-top:20px; cursor:pointer; border-radius: 15px;">
+                    <button onclick="submitFinalResults()" class="card" style="background: var(--primary); color:white; border:none; width:100%; padding:20px; font-weight:bold; margin-top:20px; cursor:pointer; border-radius: 15px;" data-i18n="submitResults">
                         Submit My Results
                     </button>
                 </div>
@@ -624,20 +718,20 @@
         <!-- PERFORMANCE SECTION -->
         <div id="performance-section" class="content-section" style="display:none;">
             <div class="card" style="max-width: 900px; margin: 0 auto;">
-                <h2 style="color: var(--primary); margin-bottom: 5px;">Performance Analytics</h2>
-                <p style="color: #64748b; margin-bottom: 25px;">Track your reading speed and accuracy growth over time.</p>
+                <h2 style="color: var(--primary); margin-bottom: 5px;" data-i18n="performanceAnalytics">Performance Analytics</h2>
+                <p style="color: #64748b; margin-bottom: 25px;" data-i18n="trackGrowth">Track your reading speed and accuracy growth over time.</p>
 
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
                     <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;">
-                        <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Avg. Speed</span>
+                        <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;" data-i18n="avgSpeed">Avg. Speed</span>
                         <div id="stat-avg-wpm" style="font-size: 1.8rem; font-weight: 800; color: var(--primary);">--</div>
                     </div>
                     <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;">
-                        <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Best Speed</span>
+                        <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;" data-i18n="bestSpeed">Best Speed</span>
                         <div id="stat-best-wpm" style="font-size: 1.8rem; font-weight: 800; color: var(--accent);">--</div>
                     </div>
                     <div style="background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center;">
-                        <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;">Avg. Accuracy</span>
+                        <span style="font-size: 0.8rem; color: #64748b; font-weight: bold; text-transform: uppercase;" data-i18n="avgAccuracy">Avg. Accuracy</span>
                         <div id="stat-avg-acc" style="font-size: 1.8rem; font-weight: 800; color: var(--primary);">--%</div>
                     </div>
                 </div>
@@ -645,45 +739,72 @@
                 <div style="background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; height: 350px;">
                     <canvas id="growthChart"></canvas>
                 </div>
+
+                <div style="margin-top: 30px; padding: 20px; background: #f0f9ff; border-radius: 12px; border-left: 4px solid var(--primary);">
+                    <h4 style="margin: 0 0 10px 0; color: var(--dark);" data-i18n="gradeBenchmark">Grade Benchmark</h4>
+                    <p style="margin: 0; color: #64748b; font-size: 14px;">
+                        <span data-i18n="yourGrade">Your Grade</span>: <strong id="benchmark-grade">--</strong> | 
+                        <span data-i18n="targetWPM">Target WPM</span>: <strong id="benchmark-wpm">--</strong> | 
+                        <span data-i18n="yourLevel">Your Level</span>: <span id="benchmark-level" class="wpm-quality">--</span>
+                    </p>
+                </div>
             </div>
         </div>
 
         <!-- GAMES SECTION -->
         <div id="games-section" class="content-section" style="display:none;">
             <div class="game-container">
-                <h1 style="color: var(--dark); margin-bottom: 20px;"><span class="icon-game"></span> Word Games</h1>
-                <p style="color: #64748b; margin-bottom: 20px;">Practice your focus words with fun games!</p>
+                <h1 style="color: var(--dark); margin-bottom: 20px;"><span class="icon-game"></span> <span data-i18n="wordGames">Word Games</span></h1>
+                <p style="color: #64748b; margin-bottom: 20px;" data-i18n="practiceFocusWords">Practice your focus words with fun games!</p>
                 
                 <div class="game-tabs">
-                    <button class="game-tab active" onclick="switchGame('wordsearch')">🔍 Word Search</button>
-                    <button class="game-tab" onclick="switchGame('memory')">🧠 Memory Match</button>
-                    <button class="game-tab" onclick="switchGame('spelling')">✏️ Spelling Bee</button>
+                    <button class="game-tab active" onclick="switchGame('wordsearch')">🔍 <span data-i18n="wordSearch">Word Search</span></button>
+                    <button class="game-tab" onclick="switchGame('memory')">🧠 <span data-i18n="memoryMatch">Memory Match</span></button>
+                    <button class="game-tab" onclick="switchGame('spelling')">✏️ <span data-i18n="spellingBee">Spelling Bee</span></button>
                 </div>
 
                 <div class="game-area" id="game-area">
                     <!-- Word Search Game -->
                     <div id="wordsearch-game">
-                        <div class="game-score">Words Found: <span id="ws-score">0</span> / <span id="ws-total">0</span></div>
+                        <div class="game-score"><span data-i18n="wordsFound">Words Found</span>: <span id="ws-score">0</span> / <span id="ws-total">0</span></div>
                         <div id="wordsearch-grid" class="wordsearch-grid"></div>
                         <div class="word-list" id="word-list"></div>
-                        <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initWordSearch()">New Game</button>
+                        <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initWordSearch()"><span data-i18n="newGame">New Game</span></button>
                     </div>
 
                     <!-- Memory Game -->
                     <div id="memory-game" style="display: none;">
-                        <div class="game-score">Matches: <span id="mem-score">0</span> / <span id="mem-total">0</span></div>
+                        <div class="game-score"><span data-i18n="matches">Matches</span>: <span id="mem-score">0</span> / <span id="mem-total">0</span></div>
                         <div id="memory-grid" class="memory-grid"></div>
-                        <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initMemoryGame()">New Game</button>
+                        <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initMemoryGame()"><span data-i18n="newGame">New Game</span></button>
                     </div>
 
                     <!-- Spelling Game -->
                     <div id="spelling-game" style="display: none;">
-                        <div class="game-score">Score: <span id="spell-score">0</span> | Word <span id="spell-current">1</span> / <span id="spell-total">0</span></div>
+                        <div class="game-score"><span data-i18n="score">Score</span>: <span id="spell-score">0</span> | <span data-i18n="word">Word</span> <span id="spell-current">1</span> / <span id="spell-total">0</span></div>
                         <div id="spelling-display" class="spelling-word"></div>
                         <div id="spelling-inputs" class="spelling-input"></div>
                         <div class="spelling-keyboard" id="spelling-keyboard"></div>
-                        <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initSpellingGame()">New Game</button>
+                        <button class="btn" style="margin-top: 20px; background: var(--primary); color: white; border: none; padding: 12px 30px; border-radius: 8px; cursor: pointer;" onclick="initSpellingGame()"><span data-i18n="newGame">New Game</span></button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BADGES SECTION -->
+        <div id="badges-section" class="content-section" style="display:none;">
+            <div class="card" style="max-width: 900px; margin: 0 auto;">
+                <h1 style="color: var(--dark); margin-bottom: 10px;"><span class="icon-trophy"></span> <span data-i18n="myBadges">My Badges</span></h1>
+                <p style="color: #64748b; margin-bottom: 30px;" data-i18n="badgeDescription">Earn badges by completing achievements and improving your reading skills!</p>
+
+                <div id="streak-section" style="margin-bottom: 30px;">
+                    <div class="streak-display" style="display: inline-flex;">
+                        <span>🔥</span> <span id="badges-streak-text">0 day streak</span>
+                    </div>
+                </div>
+
+                <div id="all-badges-container">
+                    <!-- Badges will be populated here -->
                 </div>
             </div>
         </div>
@@ -691,14 +812,14 @@
         <!-- SETTINGS SECTION -->
         <div id="settings-section" class="content-section" style="display:none;">
             <div class="card" style="max-width: 700px; margin: 0 auto;">
-                <h2 style="color: var(--dark); margin-bottom: 5px;">Accessibility Settings</h2>
-                <p style="color: #64748b; margin-bottom: 25px;">Customize your reading experience</p>
+                <h2 style="color: var(--dark); margin-bottom: 5px;" data-i18n="accessibilitySettings">Accessibility Settings</h2>
+                <p style="color: #64748b; margin-bottom: 25px;" data-i18n="customizeExperience">Customize your reading experience</p>
 
                 <!-- Font Selection -->
                 <div class="setting-row">
                     <div>
-                        <div class="setting-label">Reading Font</div>
-                        <div class="setting-description">Choose a font that's comfortable for you to read</div>
+                        <div class="setting-label" data-i18n="readingFont">Reading Font</div>
+                        <div class="setting-description" data-i18n="chooseFont">Choose a font that's comfortable for you to read</div>
                     </div>
                     <select id="font-select" onchange="updateFont()">
                         <option value="'Segoe UI', Tahoma, sans-serif">Default (Segoe UI)</option>
@@ -717,8 +838,8 @@
                 <!-- Text Size -->
                 <div class="setting-row">
                     <div>
-                        <div class="setting-label">Text Size</div>
-                        <div class="setting-description">Adjust the size of text throughout the app</div>
+                        <div class="setting-label" data-i18n="textSize">Text Size</div>
+                        <div class="setting-description" data-i18n="adjustTextSize">Adjust the size of text throughout the app</div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <span style="font-size: 14px;">A</span>
@@ -731,8 +852,8 @@
                 <!-- Epilepsy Mode -->
                 <div class="setting-row" style="background: #fef2f2; border-radius: 8px; margin: 0 -25px; padding: 20px 25px;">
                     <div>
-                        <div class="setting-label" style="color: #dc2626;"><span class="icon-heart-pulse"></span> Photosensitivity Mode</div>
-                        <div class="setting-description">Disable speed test flashing animations. Recommended for users with epilepsy or light sensitivity.</div>
+                        <div class="setting-label" style="color: #dc2626;"><span class="icon-heart-pulse"></span> <span data-i18n="photosensitivityMode">Photosensitivity Mode</span></div>
+                        <div class="setting-description" data-i18n="disableFlashing">Disable speed test flashing animations. Recommended for users with epilepsy or light sensitivity.</div>
                     </div>
                     <div class="toggle-switch" id="epilepsy-toggle" onclick="toggleEpilepsyMode()"></div>
                 </div>
@@ -740,8 +861,8 @@
                 <!-- Reduced Motion -->
                 <div class="setting-row">
                     <div>
-                        <div class="setting-label">Reduced Motion</div>
-                        <div class="setting-description">Minimize animations throughout the application</div>
+                        <div class="setting-label" data-i18n="reducedMotion">Reduced Motion</div>
+                        <div class="setting-description" data-i18n="minimizeAnimations">Minimize animations throughout the application</div>
                     </div>
                     <div class="toggle-switch" id="motion-toggle" onclick="toggleReducedMotion()"></div>
                 </div>
@@ -749,8 +870,8 @@
                 <!-- High Contrast -->
                 <div class="setting-row">
                     <div>
-                        <div class="setting-label">High Contrast</div>
-                        <div class="setting-description">Increase contrast for better visibility</div>
+                        <div class="setting-label" data-i18n="highContrast">High Contrast</div>
+                        <div class="setting-description" data-i18n="increaseContrast">Increase contrast for better visibility</div>
                     </div>
                     <div class="toggle-switch" id="contrast-toggle" onclick="toggleHighContrast()"></div>
                 </div>
@@ -759,8 +880,8 @@
                     <div style="display: flex; align-items: center; gap: 15px; background: #f0f9ff; padding: 15px; border-radius: 8px; border-left: 4px solid var(--primary);">
                         <span class="icon-info" style="color: var(--primary); font-size: 20px;"></span>
                         <div>
-                            <div style="font-weight: 600; color: var(--dark);">Your settings are saved automatically</div>
-                            <div style="font-size: 13px; color: #64748b;">They will apply every time you log in.</div>
+                            <div style="font-weight: 600; color: var(--dark);" data-i18n="settingsSaved">Your settings are saved automatically</div>
+                            <div style="font-size: 13px; color: #64748b;" data-i18n="settingsApply">They will apply every time you log in.</div>
                         </div>
                     </div>
                 </div>
@@ -772,13 +893,175 @@
     <div id="cheat-overlay" class="overlay" style="display: none;"></div>
     <div id="cheat-popup" class="cheat-popup" style="display: none;">
         <span class="icon-warning" style="font-size: 48px; color: #dc2626; margin-bottom: 15px;"></span>
-        <h2>Don't Cheat! <span class="icon-times"></span></h2>
-        <p>You finished reading way too fast! It would be impossible to read that many words in such a short time.</p>
-        <p style="font-size: 0.9rem; color: #64748b; margin-top: 10px;">Take your time and read the story properly.</p>
-        <button onclick="closeCheatPopup()">I Understand</button>
+        <h2><span data-i18n="dontCheat">Don't Cheat!</span> <span class="icon-times"></span></h2>
+        <p data-i18n="tooFast">You finished reading way too fast! It would be impossible to read that many words in such a short time.</p>
+        <p style="font-size: 0.9rem; color: #64748b; margin-top: 10px;" data-i18n="takeYourTime">Take your time and read the story properly.</p>
+        <button onclick="closeCheatPopup()"><span data-i18n="iUnderstand">I Understand</span></button>
     </div>
 
     <script>
+        // --- TRANSLATIONS ---
+        const translations = {
+            en: {
+                dashboard: "Dashboard",
+                myAssignment: "My Assignment",
+                performance: "Performance",
+                wordGames: "Word Games",
+                myBadges: "My Badges",
+                settings: "Settings",
+                logout: "Logout",
+                dailyLessons: "Daily Lessons",
+                startAssignment: "Click here to start your 3-step assignment.",
+                accuracy: "Accuracy",
+                recentBadges: "Recent Badges",
+                noBadgesYet: "Complete assignments to earn badges!",
+                assignment: "Assignment",
+                step1: "STEP 1",
+                focusWords: "Focus Words",
+                practiceWords: "Practice these words out loud.",
+                nextStep: "Next Step",
+                step2: "STEP 2",
+                speedDrill: "30-Second Speed Drill",
+                getReady: "Get ready...",
+                startSpeedDrill: "Start Speed Drill",
+                step3: "STEP 3",
+                finalAssessment: "Final Assessment",
+                storyHidden: "The story is hidden. Click the button below to reveal the text and start your timer. Read as fast and accurately as you can!",
+                startReading: "START READING NOW",
+                readOutLoud: "Read Out Loud",
+                iAmFinished: "I AM FINISHED - TAKE QUIZ",
+                quickCheck: "Quick Check",
+                answerQuestions: "Answer these questions about the story:",
+                submitResults: "Submit My Results",
+                performanceAnalytics: "Performance Analytics",
+                trackGrowth: "Track your reading speed and accuracy growth over time.",
+                avgSpeed: "Avg. Speed",
+                bestSpeed: "Best Speed",
+                avgAccuracy: "Avg. Accuracy",
+                gradeBenchmark: "Grade Benchmark",
+                yourGrade: "Your Grade",
+                targetWPM: "Target WPM",
+                yourLevel: "Your Level",
+                practiceFocusWords: "Practice your focus words with fun games!",
+                wordSearch: "Word Search",
+                memoryMatch: "Memory Match",
+                spellingBee: "Spelling Bee",
+                wordsFound: "Words Found",
+                newGame: "New Game",
+                matches: "Matches",
+                score: "Score",
+                word: "Word",
+                badgeDescription: "Earn badges by completing achievements and improving your reading skills!",
+                accessibilitySettings: "Accessibility Settings",
+                customizeExperience: "Customize your reading experience",
+                readingFont: "Reading Font",
+                chooseFont: "Choose a font that's comfortable for you to read",
+                textSize: "Text Size",
+                adjustTextSize: "Adjust the size of text throughout the app",
+                photosensitivityMode: "Photosensitivity Mode",
+                disableFlashing: "Disable speed test flashing animations. Recommended for users with epilepsy or light sensitivity.",
+                reducedMotion: "Reduced Motion",
+                minimizeAnimations: "Minimize animations throughout the application",
+                highContrast: "High Contrast",
+                increaseContrast: "Increase contrast for better visibility",
+                settingsSaved: "Your settings are saved automatically",
+                settingsApply: "They will apply every time you log in.",
+                dontCheat: "Don't Cheat!",
+                tooFast: "You finished reading way too fast! It would be impossible to read that many words in such a short time.",
+                takeYourTime: "Take your time and read the story properly.",
+                iUnderstand: "I Understand",
+                excellent: "Excellent",
+                good: "Good",
+                average: "Average",
+                needsImprovement: "Needs Improvement"
+            },
+            af: {
+                dashboard: "Dashboard",
+                myAssignment: "My Taak",
+                performance: "Prestasie",
+                wordGames: "Woord Speletjies",
+                myBadges: "My Kentekens",
+                settings: "Instellings",
+                logout: "Teken Uit",
+                dailyLessons: "Daaglikse Lesse",
+                startAssignment: "Klik hier om jou 3-stap taak te begin.",
+                accuracy: "Akkuraatheid",
+                recentBadges: "Onlangse Kentekens",
+                noBadgesYet: "Voltooi take om kentekens te verdien!",
+                assignment: "Taak",
+                step1: "STAP 1",
+                focusWords: "Fokus Woorde",
+                practiceWords: "Oefen hierdie woorde hardop.",
+                nextStep: "Volgende Stap",
+                step2: "STAP 2",
+                speedDrill: "30-Sekonde Spoed Oefening",
+                getReady: "Maak gereed...",
+                startSpeedDrill: "Begin Spoed Oefening",
+                step3: "STAP 3",
+                finalAssessment: "Finale Assessering",
+                storyHidden: "Die storie is versteek. Klik die knoppie hieronder om die teks te onthul en jou tydmeter te begin. Lees so vinnig en akkuraat as moontlik!",
+                startReading: "BEGIN NOU LEES",
+                readOutLoud: "Lees Hardop",
+                iAmFinished: "EK IS KLAAR - NEEM TOETS",
+                quickCheck: "Vinnige Toets",
+                answerQuestions: "Beantwoord hierdie vrae oor die storie:",
+                submitResults: "Dien My Resultate In",
+                performanceAnalytics: "Prestasie Analise",
+                trackGrowth: "Volg jou leesspoed en akkuraatheidsgroei oor tyd.",
+                avgSpeed: "Gem. Spoed",
+                bestSpeed: "Beste Spoed",
+                avgAccuracy: "Gem. Akkuraatheid",
+                gradeBenchmark: "Graad Maatstaf",
+                yourGrade: "Jou Graad",
+                targetWPM: "Teiken WPM",
+                yourLevel: "Jou Vlak",
+                practiceFocusWords: "Oefen jou fokus woorde met prettige speletjies!",
+                wordSearch: "Woord Soektog",
+                memoryMatch: "Geheue Pas",
+                spellingBee: "Spelling By",
+                wordsFound: "Woorde Gevind",
+                newGame: "Nuwe Speletjie",
+                matches: "Passings",
+                score: "Telling",
+                word: "Woord",
+                badgeDescription: "Verdien kentekens deur prestasies te voltooi en jou leesvaardighede te verbeter!",
+                accessibilitySettings: "Toeganklikheidsinstellings",
+                customizeExperience: "Pas jou leeservaring aan",
+                readingFont: "Leesfont",
+                chooseFont: "Kies 'n font wat gemaklik is vir jou om te lees",
+                textSize: "Teksgrootte",
+                adjustTextSize: "Pas die grootte van teks regdeur die app aan",
+                photosensitivityMode: "Fotosensitiwiteitsmodus",
+                disableFlashing: "Deaktiveer spoedtoets flikkerende animasies. Aanbeveel vir gebruikers met epilepsie of ligte sensitiwiteit.",
+                reducedMotion: "Verminderde Beweging",
+                minimizeAnimations: "Minimeer animasies regdeur die toepassing",
+                highContrast: "Hoë Kontras",
+                increaseContrast: "Verhoog kontras vir beter sigbaarheid",
+                settingsSaved: "Jou instellings word outomaties gestoor",
+                settingsApply: "Dit sal elke keer toegepas word wanneer jy aanmeld.",
+                dontCheat: "Moenie Jok Nie!",
+                tooFast: "Jy het te vinnig gelees! Dit sou onmoontlik wees om soveel woorde in so 'n kort tyd te lees.",
+                takeYourTime: "Neem jou tyd en lees die storie behoorlik.",
+                iUnderstand: "Ek Verstaan",
+                excellent: "Uitstekend",
+                good: "Goed",
+                average: "Gemiddeld",
+                needsImprovement: "Benodig Verbetering"
+            }
+        };
+
+        let currentLanguage = 'en';
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+        }
+
         // --- ANTI-CHEAT VARIABLES ---
         let readingStartTime = null;
         let currentStoryWordCount = 0;
@@ -817,6 +1100,7 @@
         let finalWpm = 0;
         let currentStoryData = null;
         let myChart = null;
+        let currentStudent = null;
 
         // Common words to exclude from focus words
         const commonWords = new Set([
@@ -830,9 +1114,35 @@
             'may', 'might', 'must', 'can', 'could', 'ought', 'need', 'dare', 'used'
         ]);
 
+        // Grade-based WPM benchmarks
+        function getBaseWpmForGrade(grade) {
+            const gradeNum = parseInt(grade) || 8;
+            const baseWpmMap = {
+                4: 90, 5: 100, 6: 110, 7: 120,
+                8: 130, 9: 140, 10: 150, 11: 160, 12: 170
+            };
+            return baseWpmMap[gradeNum] || 130;
+        }
+
+        function getWpmQuality(wpm, grade) {
+            const baseWpm = getBaseWpmForGrade(grade);
+            const ratio = wpm / baseWpm;
+            
+            if (ratio >= 1.1) return { level: 'excellent', label: translations[currentLanguage].excellent };
+            if (ratio >= 0.9) return { level: 'good', label: translations[currentLanguage].good };
+            if (ratio >= 0.7) return { level: 'average', label: translations[currentLanguage].average };
+            return { level: 'needs-improvement', label: translations[currentLanguage].needsImprovement };
+        }
+
         function loadAccessibilitySettings() {
             const student = JSON.parse(sessionStorage.getItem('student'));
             if (!student) return;
+            
+            // Set language based on student preference
+            if (student.language === 'Afrikaans') {
+                currentLanguage = 'af';
+                setLanguage('af');
+            }
             
             const saved = localStorage.getItem(`accessibility_${student.email}`);
             if (saved) {
@@ -903,7 +1213,9 @@
             saveAccessibilitySettings();
             
             if (studentSettings.epilepsyMode) {
-                alert("Photosensitivity Mode enabled. The speed drill has been disabled for your safety. You can still complete the reading assessment in Step 3.");
+                alert(currentLanguage === 'af' ? 
+                    "Fotosensitiwiteitsmodus geaktiveer. Die spoed oefening is gedeaktiveer vir jou veiligheid. Jy kan steeds die leesassessering in Stap 3 voltooi." :
+                    "Photosensitivity Mode enabled. The speed drill has been disabled for your safety. You can still complete the reading assessment in Step 3.");
             }
         }
 
@@ -938,6 +1250,10 @@
                 document.getElementById('nav-games').classList.add('active');
                 initWordSearch();
             }
+            if(id === 'badges-section') {
+                document.getElementById('nav-badges').classList.add('active');
+                loadBadges();
+            }
             if(id === 'settings-section') {
                 document.getElementById('nav-settings').classList.add('active');
             }
@@ -955,23 +1271,24 @@
                 const btn = document.getElementById('start-speed-btn');
                 if(btn) {
                     btn.style.display = 'block';
-                    btn.innerText = "Start Speed Drill";
+                    btn.innerText = translations[currentLanguage].startSpeedDrill;
                 }
-                document.getElementById('speed-flash-display').innerHTML = '<span style="color: #999;">Get ready...</span>';
+                document.getElementById('speed-flash-display').innerHTML = '<span style="color: #999;">' + translations[currentLanguage].getReady + '</span>';
                 document.getElementById('speed-timer').innerText = "30s";
             }
         }
 
         function startSpeedDrill() {
             if (studentSettings.epilepsyMode) {
-                alert("Speed drill is disabled in Photosensitivity Mode. Proceeding to reading assessment.");
+                alert(currentLanguage === 'af' ? 
+                    "Spoed oefening is gedeaktiveer in Fotosensitiwiteitsmodus. Gaan voort na leesassessering." :
+                    "Speed drill is disabled in Photosensitivity Mode. Proceeding to reading assessment.");
                 goToStep(3);
                 return;
             }
             
             const hiddenText = document.getElementById('hidden-story-text').innerText;
             storyWords = hiddenText.trim().split(/\s+/).filter(w => w.length > 0);
-            currentWordIndex = 0;
 
             const displayBox = document.getElementById('speed-flash-display');
             const timerDisplay = document.getElementById('speed-timer');
@@ -1011,7 +1328,7 @@
                     currentWordIndex++;
                 } else {
                     clearInterval(speedInterval);
-                    displayBox.innerHTML = "<h2 style='color: var(--primary);'>End of Story!</h2>";
+                    displayBox.innerHTML = "<h2 style='color: var(--primary);'>" + (currentLanguage === 'af' ? "Einde van Storie!" : "End of Story!") + "</h2>";
                 }
             }, msPerWord);
 
@@ -1025,10 +1342,10 @@
         function stopSpeedDrill() {
             clearInterval(speedInterval);
             clearInterval(speedTimer);
-            document.getElementById('speed-flash-display').innerHTML = "<h2>Drill Complete!</h2><p>Ready for the full assessment?</p>";
+            document.getElementById('speed-flash-display').innerHTML = "<h2>" + (currentLanguage === 'af' ? "Oefening Voltooi!" : "Drill Complete!") + "</h2><p>" + (currentLanguage === 'af' ? "Gereed vir die volle assessering?" : "Ready for the full assessment?") + "</p>";
             const startBtn = document.getElementById('start-speed-btn');
             if(startBtn) {
-                startBtn.innerText = "Go to Step 3";
+                startBtn.innerText = currentLanguage === 'af' ? "Gaan na Stap 3" : "Go to Step 3";
                 startBtn.style.display = 'block';
                 startBtn.onclick = () => goToStep(3);
             }
@@ -1085,7 +1402,7 @@
             clearInterval(liveTimerInterval);
             const endTime = new Date();
             const timeInSeconds = (endTime - startTime) / 1000;
-            if (timeInSeconds < 1) return alert("Please read the story before finishing!");
+            if (timeInSeconds < 1) return alert(currentLanguage === 'af' ? "Lees asseblief die storie voordat jy klaar is!" : "Please read the story before finishing!");
 
             const storyText = document.getElementById('assessment-text-box').innerText;
             const wordCount = storyText.trim().split(/\s+/).length;
@@ -1148,10 +1465,12 @@
 
             try {
                 await window.api.saveResult(resultData);
-                alert(`Saved! Speed: ${finalWpm} WPM | Accuracy: ${accuracy}%`);
+                alert(currentLanguage === 'af' ? 
+                    `Gestoor! Spoed: ${finalWpm} WPM | Akkuraatheid: ${accuracy}%` :
+                    `Saved! Speed: ${finalWpm} WPM | Accuracy: ${accuracy}%`);
                 location.reload(); 
             } catch (err) { 
-                alert("Error saving results."); 
+                alert(currentLanguage === 'af' ? "Fout om resultate te stoor." : "Error saving results."); 
                 console.error(err);
             }
         }
@@ -1181,8 +1500,33 @@
 
         async function loadAssignmentContent() {
             try {
-                const stories = await window.api.getStories();
-                const activeStory = stories.find(s => s.is_active === 1);
+                const student = JSON.parse(sessionStorage.getItem('student'));
+                if (!student) return;
+
+                let activeStory = null;
+                let stories = null;
+                let retries = 3;
+                
+                while (retries > 0 && !activeStory) {
+                    try {
+                        activeStory = await window.api.getActiveStoryForGrade(student.grade);
+                        
+                        if (!activeStory) {
+                            stories = await window.api.getStories();
+                            activeStory = stories.find(s => s.is_active === 1);
+                        }
+                        
+                        if (!activeStory && retries > 1) {
+                            await new Promise(r => setTimeout(r, 500));
+                        }
+                    } catch (dbErr) {
+                        console.log("DB not ready, retrying...", retries, dbErr);
+                        retries--;
+                        if (retries > 0) {
+                            await new Promise(r => setTimeout(r, 500));
+                        }
+                    }
+                }
                 
                 if (activeStory) {
                     currentStoryData = activeStory; 
@@ -1207,6 +1551,10 @@
                     
                     document.getElementById('hidden-story-text').innerText = activeStory.content;
                     document.getElementById('assessment-text-box').innerText = activeStory.content;
+                } else {
+                    document.getElementById('focus-words-list').innerHTML = 
+                        '<p style="color: #dc2626; width: 100%; text-align: center;">No active story found. Please ask your teacher to set an active story for your grade.</p>';
+                    console.error("No active story found for grade:", student.grade);
                 }
             } catch (err) { 
                 console.error("Error loading assignment:", err);
@@ -1244,6 +1592,22 @@
                 document.getElementById('stat-best-wpm').innerText = maxSpeed;
                 document.getElementById('stat-avg-acc').innerText = avgAcc + "%";
 
+                document.getElementById('benchmark-grade').textContent = student.grade || '--';
+                const baseWpm = getBaseWpmForGrade(student.grade);
+                document.getElementById('benchmark-wpm').textContent = baseWpm;
+                
+                const quality = getWpmQuality(avgSpeed, student.grade);
+                const qualityBadge = document.getElementById('benchmark-level');
+                qualityBadge.textContent = quality.label;
+                qualityBadge.className = `wpm-quality wpm-${quality.level}`;
+
+                const dashboardBadge = document.getElementById('wpm-quality-badge');
+                if (dashboardBadge && myData.length > 0) {
+                    const latest = myData[myData.length - 1];
+                    const latestQuality = getWpmQuality(latest.wpm, student.grade);
+                    dashboardBadge.innerHTML = `<span class="wpm-quality wpm-${latestQuality.level}">${latestQuality.label}</span>`;
+                }
+
                 const labels = myData.map(r => new Date(r.timestamp).toLocaleDateString());
                 
                 const ctx = document.getElementById('growthChart').getContext('2d');
@@ -1255,7 +1619,7 @@
                     data: {
                         labels: labels,
                         datasets: [{
-                            label: 'Words Per Minute',
+                            label: currentLanguage === 'af' ? 'Woorde Per Minuut' : 'Words Per Minute',
                             data: speeds,
                             borderColor: getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#004a99',
                             backgroundColor: 'rgba(0, 74, 153, 0.1)',
@@ -1280,6 +1644,147 @@
 
             } catch (err) {
                 console.error("Performance Load Error:", err);
+            }
+        }
+
+        // --- BADGE CONFIGURATION (Global - moved outside function) ---
+        const badgeConfig = {
+            speedster: { 
+                name: 'The Speedster', 
+                image: './assets/badges/speedster.png',
+                desc: 'Achieved 10% above base WPM'
+            },
+            perfect_score: { 
+                name: 'Perfect Score', 
+                image: './assets/badges/perfect_score.png',
+                desc: '100% accuracy on quiz'
+            },
+            quality: { 
+                name: 'Quality over Speed', 
+                image: './assets/badges/quality.png',
+                desc: '100% accuracy on 5+ stories'
+            },
+            growth: { 
+                name: 'Growth Mindset', 
+                image: './assets/badges/growth.png',
+                desc: 'Improved WPM by 15+ in a month'
+            },
+            game_warrior: { 
+                name: 'Word Game Warrior', 
+                image: './assets/badges/game_warrior.png',
+                desc: 'High score in word games'
+            },
+            researcher: { 
+                name: 'Master Researcher', 
+                image: './assets/badges/researcher.png',
+                desc: 'Vocabulary master'
+            },
+            grand_master: { 
+                name: 'Grand Master', 
+                image: './assets/badges/grand_master.png',
+                desc: 'Earned all other badges'
+            }
+        };
+
+        // --- FIXED loadBadges function (single definition, no nesting) ---
+        async function loadBadges() {
+            const student = JSON.parse(sessionStorage.getItem('student'));
+            if (!student) return;
+
+            try {
+                const badges = await window.api.getStudentBadges(student.email);
+                const streak = await window.api.getLoginStreak(student.email);
+                
+                const regularBadges = ['speedster', 'perfect_score', 'quality', 'growth', 'game_warrior', 'researcher'];
+                const earnedTypes = badges.map(b => b.badge_type);
+                const hasAllRegular = regularBadges.every(type => earnedTypes.includes(type));
+                
+                if (hasAllRegular && !earnedTypes.includes('grand_master')) {
+                    await window.api.awardBadge({
+                        email: student.email,
+                        badge_type: 'grand_master',
+                        badge_name: 'Grand Master',
+                        criteria_met: 'Earned all other badges'
+                    });
+                    badges.push({
+                        badge_type: 'grand_master',
+                        badge_name: 'Grand Master',
+                        awarded_date: new Date().toISOString()
+                    });
+                }
+                
+                const streakText = document.getElementById('streak-text');
+                const badgesStreakText = document.getElementById('badges-streak-text');
+                const streakDisplay = document.getElementById('streak-display');
+                
+                if (streak && streak.streak_count > 0) {
+                    const streakLabel = streak.streak_count === 1 ? 'day' : 'days';
+                    const streakStr = `${streak.streak_count} ${streakLabel} streak`;
+                    
+                    if (streakText) streakText.textContent = streakStr;
+                    if (badgesStreakText) badgesStreakText.textContent = streakStr;
+                    if (streakDisplay) streakDisplay.style.display = 'inline-flex';
+                }
+
+                const recentBadgesContainer = document.getElementById('recent-badges');
+                if (recentBadgesContainer) {
+                    if (badges.length > 0) {
+                        recentBadgesContainer.innerHTML = badges.slice(0, 3).map(b => {
+                            const config = badgeConfig[b.badge_type] || { name: b.badge_name, image: '', desc: '' };
+                            return `
+                                <div class="badge-item" style="background: white; border: 2px solid #f59e0b;">
+                                    <img src="${config.image}" style="width: 40px; height: 40px; object-fit: contain;" 
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <span style="display: none; font-size: 24px;">🏆</span>
+                                    <span>${config.name}</span>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+
+                const allBadgesContainer = document.getElementById('all-badges-container');
+                if (allBadgesContainer) {
+                    const allBadgeTypes = ['speedster', 'perfect_score', 'quality', 'growth', 'game_warrior', 'researcher', 'grand_master'];
+                    
+                    allBadgesContainer.innerHTML = allBadgeTypes.map(type => {
+                        const earned = badges.find(b => b.badge_type === type);
+                        const config = badgeConfig[type];
+                        
+                        if (earned) {
+                            return `
+                                <div class="badge-item" style="margin-bottom: 15px; width: 100%; box-sizing: border-box; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">
+                                    <img src="${config.image}" style="width: 50px; height: 50px; object-fit: contain; margin-right: 15px;" 
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <span style="display: none; font-size: 32px;">🏆</span>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; font-size: 16px;">${config.name}</div>
+                                        <div style="font-size: 12px; opacity: 0.9;">${config.desc}</div>
+                                        <div style="font-size: 11px; margin-top: 4px; opacity: 0.8;">Earned: ${new Date(earned.awarded_date).toLocaleDateString()}</div>
+                                    </div>
+                                    ✅
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <div class="badge-item locked" style="margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+                                    <img src="${config.image}" style="width: 50px; height: 50px; object-fit: contain; margin-right: 15px; opacity: 0.3; filter: grayscale(100%);" 
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                    <span style="display: none; font-size: 32px; opacity: 0.3;">🔒</span>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 700; font-size: 16px;">${config.name}</div>
+                                        <div style="font-size: 12px; opacity: 0.7;">${config.desc}</div>
+                                        <div style="font-size: 11px; margin-top: 4px; color: #dc2626;">Not yet earned</div>
+                                    </div>
+                                    🔒
+                                </div>
+                            `;
+                        }
+                    }).join('');
+                }
+
+            } catch (err) {
+                console.error("Error loading badges:", err);
             }
         }
 
@@ -1433,7 +1938,7 @@
                     document.getElementById('ws-score').textContent = foundWords.length;
                     
                     if (foundWords.length === words.length) {
-                        setTimeout(() => alert('Congratulations! You found all words!'), 100);
+                        setTimeout(() => alert(currentLanguage === 'af' ? 'Baie geluk! Jy het alle woorde gevind!' : 'Congratulations! You found all words!'), 100);
                     }
                 }
             });
@@ -1488,7 +1993,7 @@
                 document.getElementById('mem-score').textContent = memoryMatches;
                 
                 if (memoryMatches === memoryCards.length / 2) {
-                    setTimeout(() => alert('Great job! You matched all pairs!'), 100);
+                    setTimeout(() => alert(currentLanguage === 'af' ? 'Goeie werk! Jy het alle pare gematch!' : 'Great job! You matched all pairs!'), 100);
                 }
             } else {
                 card1.classList.remove('flipped');
@@ -1512,7 +2017,9 @@
 
         function loadSpellingWord() {
             if (currentSpellIndex >= spellingWords.length) {
-                alert(`Game Over! Your score: ${spellScore}/${spellingWords.length * 10}`);
+                alert(currentLanguage === 'af' ? 
+                    `Speletjie Verby! Jou telling: ${spellScore}/${spellingWords.length * 10}` :
+                    `Game Over! Your score: ${spellScore}/${spellingWords.length * 10}`);
                 initSpellingGame();
                 return;
             }
@@ -1567,7 +2074,7 @@
             
             const submitBtn = document.createElement('button');
             submitBtn.className = 'key-btn';
-            submitBtn.textContent = '✓ Check';
+            submitBtn.textContent = currentLanguage === 'af' ? '✓ Kontroleer' : '✓ Check';
             submitBtn.style.background = '#dcfce7';
             submitBtn.onclick = () => checkSpelling();
             keyboard.appendChild(submitBtn);
@@ -1621,8 +2128,16 @@
             const student = JSON.parse(sessionStorage.getItem('student'));
             if (!student) return window.api.switchPage('index.html');
 
-            document.getElementById('greeting').textContent = `Hello, ${student.name}!`;
-            document.getElementById('student-info').textContent = `Grade ${student.grade} | ${student.email}`;
+            currentStudent = student;
+
+            // Set language
+            if (student.language === 'Afrikaans') {
+                currentLanguage = 'af';
+                setLanguage('af');
+            }
+
+            document.getElementById('greeting').textContent = (currentLanguage === 'af' ? 'Hallo, ' : 'Hello, ') + student.name + '!';
+            document.getElementById('student-info').textContent = (currentLanguage === 'af' ? 'Graad ' : 'Grade ') + student.grade + ' | ' + student.email;
             document.getElementById('user-initials').textContent = student.name[0].toUpperCase();
 
             loadAccessibilitySettings();
@@ -1650,8 +2165,15 @@
                     const latest = myResults[myResults.length - 1];
                     document.getElementById('last-wpm').textContent = `${latest.wpm} WPM`;
                     document.getElementById('last-acc').textContent = `${latest.accuracy}%`;
+                    
+                    // Add quality badge
+                    const quality = getWpmQuality(latest.wpm, student.grade);
+                    document.getElementById('wpm-quality-badge').innerHTML = `<span class="wpm-quality wpm-${quality.level}">${quality.label}</span>`;
                 }
             } catch (e) { console.error(e); }
+
+            // Load badges and streak
+            loadBadges();
         };
     </script>
 </body>
