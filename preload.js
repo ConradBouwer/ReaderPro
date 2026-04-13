@@ -43,10 +43,12 @@ contextBridge.exposeInMainWorld('api', {
   // --- Story & OCR Management ---
   saveStory: (storyData) => ipcRenderer.invoke('save-story', storyData),
   getStories: () => ipcRenderer.invoke('get-stories'),
-  scanPdf: (filePath) => ipcRenderer.invoke('scan-pdf', filePath),  // <-- ADD THIS LINE
+  getStoryById: (id) => ipcRenderer.invoke('get-story-by-id', id),
+  scanPdf: (filePath) => ipcRenderer.invoke('scan-pdf', filePath),
   
   // --- Library Management Handlers ---
-  setActiveStory: (id) => ipcRenderer.invoke('set-active-story', id),
+  setActiveStory: (id, grade) => ipcRenderer.invoke('set-active-story', id, grade),
+  getActiveStoryForGrade: (grade) => ipcRenderer.invoke('get-active-story-for-grade', grade),
   deleteStory: (id) => ipcRenderer.invoke('delete-story', id),
 
   // --- Learner Results & Analytics ---
@@ -57,9 +59,17 @@ contextBridge.exposeInMainWorld('api', {
   // --- CSV Export ---
   exportToCSV: (payload) => ipcRenderer.invoke('export-to-csv', payload),
 
+  // --- Database Backup ---
+  exportDatabaseBackup: () => ipcRenderer.invoke('export-database-backup'),
+
   // --- Branding & Settings ---
   saveSetting: (data) => ipcRenderer.invoke('save-setting', data),
   getSettings: () => ipcRenderer.invoke('get-settings'),
+
+  // --- Badges & Achievements ---
+  getStudentBadges: (email) => ipcRenderer.invoke('get-student-badges', email),
+  getLoginStreak: (email) => ipcRenderer.invoke('get-login-streak', email),
+  awardBadge: (badgeData) => ipcRenderer.invoke('award-badge', badgeData),
 
   // --- UPDATE SYSTEM ---
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
